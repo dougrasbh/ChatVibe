@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import loadingAni from './images/spinner-loader.gif';
 import abstractBg from './images/abstract-img.jpeg';
+//import { generateKeyPairSync } from 'crypto'
 
 export default function SignUp() {
   const [username, setUsername] = useState('');
@@ -23,6 +24,18 @@ export default function SignUp() {
   const [nameError, setNameError] = useState('');
   const [showError, setShowError] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
+
+  // function generateKeyPair() {
+  //   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+  //     modulusLength: 2048,
+  //   });
+  //   console.log(privateKey, publicKey)
+  //   return {
+  //     private_key: privateKey.export({ format: "pem", type: "pkcs1" }),
+  //     public_key: publicKey.export({ format: "pem", type: "pkcs1" }),
+  //   };
+  // }
+
   function generateRandomCode() {
     const code = Math.floor(Math.random() * 9000) + 1000;
     return code.toString();
@@ -67,6 +80,8 @@ export default function SignUp() {
     checkEmail();
     checkUsername();
     setShowError(false);
+    
+  
   }, [username, password, email]);
   function checkAndSaveCode(user, userCode) {
     const codesRef = ref(
@@ -92,6 +107,7 @@ export default function SignUp() {
             [userCode]: user.uid,
           });
         }).then(() => {
+          //generateKeyPair()
           toast.success('Sign up successful!. Try signing in.');
         }).catch(() => {
           toast.error('Failed to sign up. Try again...');

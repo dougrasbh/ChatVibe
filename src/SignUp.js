@@ -1,40 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import { Tilt } from 'react-tilt';
+import React, { useState, useEffect } from "react";
+import { Tilt } from "react-tilt";
 import {
   CreateUserWithEmailAndPassword,
   createUserWithEmailAndPassword,
   getAuth,
   updateProfile,
-} from 'firebase/auth';
-import {
-  update, ref, getDatabase, get,
-} from 'firebase/database';
-import { Link } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import loadingAni from './images/spinner-loader.gif';
-import abstractBg from './images/abstract-img.jpeg';
-//import { generateKeyPairSync } from 'crypto'
+} from "firebase/auth";
+import { update, ref, getDatabase, get } from "firebase/database";
+import { Link } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import loadingAni from "./images/spinner-loader.gif";
+import abstractBg from "./images/abstract-img.jpeg";
 
 export default function SignUp() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [nameError, setNameError] = useState("");
   const [showError, setShowError] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
-  // function generateKeyPair() {
-  //   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
-  //     modulusLength: 2048,
-  //   });
-  //   console.log(privateKey, publicKey)
-  //   return {
-  //     private_key: privateKey.export({ format: "pem", type: "pkcs1" }),
-  //     public_key: publicKey.export({ format: "pem", type: "pkcs1" }),
-  //   };
-  // }
+  async function generateKeyPair() {
+    try {
+      const keyPair = await window.crypto.subtle.generateKey(
+        {
+          name: "RSA-OAEP",
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: { name: "SHA-256" },
+        },
+        true,
+        ["encrypt", "decrypt"]
+      );
+
+      const publicKeyArrayBuffer = await window.crypto.subtle.exportKey(
+        "spki",
+        keyPair.publicKey
+      );
+      const privateKeyArrayBuffer = await window.crypto.subtle.exportKey(
+        "pkcs8",
+        keyPair.privateKey
+      );
+
+      // converte os arrays de bytes para base64
+      const publicKey = btoa(
+        String.fromCharCode.apply(null, new Uint8Array(publicKeyArrayBuffer))
+      );
+      const privateKey = btoa(
+        String.fromCharCode.apply(null, new Uint8Array(privateKeyArrayBuffer))
+      );
+
+      console.log(`PRIVATE KEY:\n${privateKey}\nPUBLIC KEY:\n${publicKey}`);
+
+      return {
+        private_key: privateKey,
+        public_key: publicKey,
+      };
+    } catch (error) {
+      console.error("Erro ao gerar o par de chaves:", error);
+      throw error;
+    }
+  }
+
+  // Exemplo de uso
+  generateKeyPair();
 
   function generateRandomCode() {
     const code = Math.floor(Math.random() * 9000) + 1000;
@@ -43,35 +74,35 @@ export default function SignUp() {
 
   function checkUsername() {
     if (!username.length > 0) {
-      setNameError('Please enter your name');
+      setNameError("Please enter your name");
       return false;
     }
-    setNameError('');
+    setNameError("");
     return true;
   }
   function checkEmail() {
     if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
-      setEmailError('Please enter a valid email');
+      setEmailError("Please enter a valid email");
       return false;
     }
-    setEmailError('');
+    setEmailError("");
     return true;
   }
   function checkPassword() {
     const hasNumber = /\d/;
     if (password.length == 0) {
-      setPasswordError('Password cannot be empty');
+      setPasswordError("Password cannot be empty");
     } else if (password.length <= 7 && password.length > 0) {
-      setPasswordError('Password must be at least 8 characters long');
+      setPasswordError("Password must be at least 8 characters long");
       return false;
     } else if (!hasNumber.test(password)) {
-      setPasswordError('Password needs to have at least 1 number');
+      setPasswordError("Password needs to have at least 1 number");
       return false;
     } else if (!/[a-zA-Z]/.test(password)) {
-      setPasswordError('Password needs to have at least 1 letter');
+      setPasswordError("Password needs to have at least 1 letter");
       return false;
     } else {
-      setPasswordError('');
+      setPasswordError("");
       return true;
     }
   }
@@ -80,15 +111,13 @@ export default function SignUp() {
     checkEmail();
     checkUsername();
     setShowError(false);
-    
-  
   }, [username, password, email]);
   function checkAndSaveCode(user, userCode) {
     const codesRef = ref(
       getDatabase(),
-      `userCodes/${user.displayName}/${userCode}`,
+      `userCodes/${user.displayName}/${userCode}`
     );
-    const usersRef = ref(getDatabase(), 'users');
+    const usersRef = ref(getDatabase(), "users");
 
     get(codesRef).then((snapshot) => {
       if (!snapshot.exists()) {
@@ -98,20 +127,23 @@ export default function SignUp() {
             email: user.email,
             userCode,
           },
-        }).then(() => {
-          const userCodesRef = ref(
-            getDatabase(),
-            `userCodes/${user.displayName}`,
-          );
-          update(userCodesRef, {
-            [userCode]: user.uid,
+        })
+          .then(() => {
+            const userCodesRef = ref(
+              getDatabase(),
+              `userCodes/${user.displayName}`
+            );
+            update(userCodesRef, {
+              [userCode]: user.uid,
+            });
+          })
+          .then(() => {
+            //generateKeyPair()
+            toast.success("Sign up successful!. Try signing in.");
+          })
+          .catch(() => {
+            toast.error("Failed to sign up. Try again...");
           });
-        }).then(() => {
-          //generateKeyPair()
-          toast.success('Sign up successful!. Try signing in.');
-        }).catch(() => {
-          toast.error('Failed to sign up. Try again...');
-        });
       } else {
         checkAndSaveCode(user, generateRandomCode());
       }
@@ -156,9 +188,9 @@ export default function SignUp() {
             value={username}
           />
           <p
-            className={
-              `text-red-400 text-xs${showError ? ' block' : ' hidden'}`
-            }
+            className={`text-red-400 text-xs${
+              showError ? " block" : " hidden"
+            }`}
           >
             {nameError}
           </p>
@@ -174,9 +206,9 @@ export default function SignUp() {
             value={email}
           />
           <p
-            className={
-              `text-red-400 text-xs${showError ? ' block' : ' hidden'}`
-            }
+            className={`text-red-400 text-xs${
+              showError ? " block" : " hidden"
+            }`}
           >
             {emailError}
           </p>
@@ -193,9 +225,9 @@ export default function SignUp() {
             type="password"
           />
           <p
-            className={
-              `text-red-400 text-xs${showError ? ' block' : ' hidden'}`
-            }
+            className={`text-red-400 text-xs${
+              showError ? " block" : " hidden"
+            }`}
           >
             {passwordError}
           </p>
@@ -213,19 +245,22 @@ export default function SignUp() {
                     updateProfile(user, {
                       displayName: username,
                       photoURL:
-                        'https://static.vecteezy.com/system/resources/thumbnails/002/534/006/small/social-media-chatting-online-blank-profile-picture-head-and-body-icon-people-standing-icon-grey-background-free-vector.jpg',
+                        "https://static.vecteezy.com/system/resources/thumbnails/002/534/006/small/social-media-chatting-online-blank-profile-picture-head-and-body-icon-people-standing-icon-grey-background-free-vector.jpg",
                     }).then((value) => {
                       checkAndSaveCode(user, generateRandomCode());
                     });
                   })
                   .catch((err) => {
-                    if (err == 'FirebaseError: Firebase: Error (auth/email-already-in-use).'
+                    if (
+                      err ==
+                      "FirebaseError: Firebase: Error (auth/email-already-in-use)."
                     ) {
-                      toast.error('Email already in use. Try another one.');
+                      toast.error("Email already in use. Try another one.");
                     } else {
-                      toast.error('Something went wrong. Try again...');
+                      toast.error("Something went wrong. Try again...");
                     }
-                  }).finally((value) => {
+                  })
+                  .finally((value) => {
                     setIsSigningUp(false);
                   });
               } else {
@@ -233,11 +268,14 @@ export default function SignUp() {
               }
             }}
           >
-            {!isSigningUp ? <p>Sign Up</p> : <img src={loadingAni} className="w-6 h-6 m-auto" />}
+            {!isSigningUp ? (
+              <p>Sign Up</p>
+            ) : (
+              <img src={loadingAni} className="w-6 h-6 m-auto" />
+            )}
           </button>
           <p className="text-xs text-white text-center">
-            Already have an account?
-            {' '}
+            Already have an account?{" "}
             <Link to="/auth/signin">
               <span className=" text-btnColor cursor-pointer">Sign In</span>
             </Link>

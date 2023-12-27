@@ -10,6 +10,7 @@ import {
   query,
   orderByValue,
   remove,
+  onValue
 } from 'firebase/database';
 import EmojiPicker from 'emoji-picker-react';
 import { MdOutlineEmojiEmotions, MdOutlineCancel } from 'react-icons/md';
@@ -461,7 +462,8 @@ function CreateForm({
                   const userRef = ref(
                     getDatabase(),
                     `/users/${auth.currentUser.uid}/chats`,
-                  );
+                  )
+                  console.log()
                   const codesRef = ref(getDatabase(), '/codes');
                   const metaData = ref(getDatabase(), '/chatMetaData');
                   setShowEmoji(false);
@@ -507,13 +509,26 @@ function CreateForm({
                 const userRef = ref(
                   getDatabase(),
                   `/users/${user.uid}/chats`,
-                );
+                ) // PESSOA QUE TA CRIANDO O CHAT
+                //console.log(userRef)
+                const userPublicKeyRef = ref(
+                  getDatabase(),
+                  `/users/${user.uid}/userPublicKey`,
+                )
+                onValue(userPublicKeyRef, (snapshot) => {
+                  // O valor atualizado está disponível em snapshot.val()
+                  const userPublicKey = snapshot.val();
+                  console.log('Valor de userPublicKey:', userPublicKey);
+                });
+
                 if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(username)) {
                   const splitName = username.split('#');
                   const codeRef = ref(
                     getDatabase(),
                     `userCodes/${splitName[0]}/${splitName[1]}`,
-                  );
+                  ) // PESSOA OBJETIVO DA CRIAÇÃO DO CHAT
+                  console.log(userRef)
+                  console.log(codeRef)
                   setIsLoading(true);
                   get(codeRef).then((snapshot) => {
                     if (snapshot.exists() && user) {
@@ -521,6 +536,7 @@ function CreateForm({
                         getDatabase(),
                         `users/${snapshot.val()}/name`,
                       );
+                      //console.log(nameRef)
                       const codeRef = ref(
                         getDatabase(),
                         `users/${snapshot.val()}/userCode`,

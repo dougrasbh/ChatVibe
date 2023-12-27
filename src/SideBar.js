@@ -473,6 +473,7 @@ function CreateForm({
                     participants: {
                       [auth.currentUser.uid]: true,
                     },
+                    // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
                   }).then((value) => {
                     update(userRef, {
                       [value.key]: true,

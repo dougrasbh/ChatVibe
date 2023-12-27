@@ -52,12 +52,12 @@ export default function SignUp() {
         String.fromCharCode.apply(null, new Uint8Array(privateKeyArrayBuffer))
       );
 
-      console.log(`PRIVATE KEY:\n${privateKey}\nPUBLIC KEY:\n${publicKey}`);
+      // saving the private key on local storage database
+      localStorage.setItem('userPrivateKey', privateKey)
+      
+      return publicKey
 
-      return {
-        private_key: privateKey,
-        public_key: publicKey,
-      };
+      console.log(`PRIVATE KEY:\n${privateKey}\nPUBLIC KEY:\n${publicKey}`);
     } catch (error) {
       console.error("Erro ao gerar o par de chaves:", error);
       throw error;
@@ -111,6 +111,7 @@ export default function SignUp() {
     checkEmail();
     checkUsername();
     setShowError(false);
+    generateKeyPair()
   }, [username, password, email]);
   function checkAndSaveCode(user, userCode) {
     const codesRef = ref(
@@ -119,13 +120,14 @@ export default function SignUp() {
     );
     const usersRef = ref(getDatabase(), "users");
 
-    get(codesRef).then((snapshot) => {
+    get(codesRef).then(async(snapshot) => {
       if (!snapshot.exists()) {
         update(usersRef, {
           [user.uid]: {
             name: user.displayName,
             email: user.email,
             userCode,
+            userPublicKey: await generateKeyPair()
           },
         })
           .then(() => {

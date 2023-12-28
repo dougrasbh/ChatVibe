@@ -9,6 +9,8 @@
         "$chatId": {
           ".read": "data.child('participants').hasChild(auth.uid)",
           ".write": "data.child('participants').hasChild(auth.uid)",
+          ".read": "data.child('sessionKeys').hasChild(auth.uid)",
+          ".write": "data.child('sessionKeys').hasChild(auth.uid)",
   
           "messages": {
             "$messageId": {

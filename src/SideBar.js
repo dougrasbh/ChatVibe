@@ -33,6 +33,7 @@ import tickgif from './images/blue-tick.gif';
 import discordGroupIcon from './images/discord-group-icon.png';
 import discordIcon2 from './images/discordIcon2.png';
 import loadingAni from './images/loading-croppered.gif';
+import {encryptAesKey} from './security.js';
 
 export default function SideBar() {
   const [hover, setHover] = useState(false);
@@ -230,7 +231,10 @@ function CreateForm({
   const { chatId } = useParams();
   const [duoError, setDuoError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userPublicKey, setUserPublicKey] = useState("")
+  const [otherUserPublicKey, setOtherUserPublicKey] = useState("")
   const navigate = useNavigate();
+
   function generateUID() {
     const string = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890';
     const uid = [];
@@ -450,9 +454,11 @@ function CreateForm({
           <button
             className="done-button "
             disabled={isLoading}
+
             onClick={() => {
+              let otherUserPublicKey = "";
               if (modalType == 'group') {
-                if (
+                if (  
                   chatName.trim().length !== 0
                   && selectedEmoji.trim().length !== 0
                 ) {
@@ -463,7 +469,6 @@ function CreateForm({
                     getDatabase(),
                     `/users/${auth.currentUser.uid}/chats`,
                   )
-                  console.log()
                   const codesRef = ref(getDatabase(), '/codes');
                   const metaData = ref(getDatabase(), '/chatMetaData');
                   setShowEmoji(false);
@@ -516,9 +521,8 @@ function CreateForm({
                   `/users/${user.uid}/userPublicKey`,
                 )
                 onValue(userPublicKeyRef, (snapshot) => {
-                  // O valor atualizado está disponível em snapshot.val()
-                  const userPublicKey = snapshot.val();
-                  console.log('Valor de userPublicKey:', userPublicKey);
+                  setUserPublicKey(snapshot.val())
+                  console.log(userPublicKey)
                 });
 
                 if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(username)) {
@@ -527,8 +531,6 @@ function CreateForm({
                     getDatabase(),
                     `userCodes/${splitName[0]}/${splitName[1]}`,
                   ) // PESSOA OBJETIVO DA CRIAÇÃO DO CHAT
-                  console.log(userRef)
-                  console.log(codeRef)
                   setIsLoading(true);
                   get(codeRef).then((snapshot) => {
                     if (snapshot.exists() && user) {
@@ -561,7 +563,14 @@ function CreateForm({
                         getDatabase(),
                         `/users/${snapshot.val()}/contacts`,
                       );
-
+                      const otherUserPublicKeyRef = ref(
+                        getDatabase(),
+                        `/users/${snapshot.val()}/userPublicKey`
+                      )
+                      onValue(otherUserPublicKeyRef, (snapshot) => {
+                        setOtherUserPublicKey(snapshot.val())
+                      })
+      
                       get(checkContactRef).then((contact) => {
                         if (!contact.exists()) {
                           get(nameRef).then((name) => {
@@ -615,71 +624,99 @@ function CreateForm({
                                             });
                                           });
                                       } else {
+                                        // gerando chave aes
+                                        const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16))
                                         const fullUsername = `${name.val()}#${code.val()}`;
-                                        push(chatRef, {
-                                          author: user.uid,
-                                          timeCreated: Date.now(),
-                                          type: 'duo',
-                                          participants: {
-                                            [user.uid]: true,
-                                            [snapshot.val()]: true,
-                                          },
-                                          originalParticipants: {
-                                            [user.uid]: true,
-                                            [snapshot.val()]: true,
-                                          },
-                                        }).then((value) => {
-                                          update(userRef, {
-                                            [value.key]: true,
-                                          }).then(() => {
-                                            update(otherUserRef, {
-                                              [value.key]: true,
-                                            }).then((result) => {
-                                              const metaData = ref(
-                                                getDatabase(),
-                                                '/chatMetaData',
-                                              );
-                                              update(metaData, {
-                                                [value.key]: {
-                                                  chatName: name.val(),
-                                                  pfp: name
-                                                    .val()[0]
-                                                    .toUpperCase(),
-                                                  type: 'duo',
-                                                  participants: {
-                                                    [user.uid]:
-                                                        user.displayName,
-                                                    [snapshot.val()]:
-                                                        name.val(),
-                                                  },
+                                        
+                                        // const userCipherChatKey = encryptAesKey(aesChatKey, userPublicKey)
+                                        // const otherUserCipherChatKey = encryptAesKey(aesChatKey, otherUserPublicKey)
+
+                                        //console.log(typeof(JSON.stringify(userCipherChatKey)))
+                                        async function createEncryptedChat(chatRef, user, snapshot) {
+                                            try {
+                                              // Cifrar a chave do usuário
+                                              const userCipherChatKey = await encryptAesKey(aesChatKey, userPublicKey);
+                                          
+                                              // Cifrar a chave da outra pessoa
+                                              const otherUserCipherChatKey = await encryptAesKey(aesChatKey, otherUserPublicKey);
+                                          
+                                              // Criar objeto para ser empurrado para o banco de dados
+                                              await push(chatRef, {
+                                                author: user.uid,
+                                                timeCreated: Date.now(),
+                                                type: 'duo',
+                                                participants: {
+                                                  [user.uid]: true,
+                                                  [snapshot.val()]: true,
                                                 },
-                                              }).then(() => {
-                                                update(contactRef, {
-                                                  [username.replace(
-                                                    /#/g,
-                                                    '',
-                                                  )]: value.key,
-                                                })
-                                                  .then(() => {
-                                                    update(otherContactRef, {
-                                                      [(
-                                                        `${userInfo.name
-                                                        }#${
-                                                          userInfo.userCode}`
-                                                      ).replace(/#/g, '')]:
-                                                          value.key,
-                                                    });
-                                                  })
-                                                  .then(() => {
-                                                    setFormIndex(
-                                                      (prev) => prev + 1,
-                                                    );
-                                                    setIsLoading(false);
-                                                  });
-                                              });
-                                            });
-                                          });
-                                        });
+                                                originalParticipants: {
+                                                  [user.uid]: true,
+                                                  [snapshot.val()]: true,
+                                                },
+                                                sessionKeys: {
+                                                  ['creatorKey'] : userCipherChatKey,
+                                                  ['otherCreatorKey'] : otherUserCipherChatKey,
+                                                }})
+                                                
+                                              console.log('Chat criado com sucesso')
+                                            } catch (error) {
+                                              console.error('Erro ao criar chat:', error);
+                                            }
+                                          }
+                                          
+                                          // Uso da função
+                                          createEncryptedChat(chatRef, user, snapshot)//.then((value) => {
+                                        //   update(userRef, {
+                                        //     [value.key]: true,  
+                                        //   }).then(() => {
+                                        //     update(otherUserRef, {
+                                        //       [value.key]: true,
+                                        //     }).then((result) => {
+                                        //       const metaData = ref(
+                                        //         getDatabase(),
+                                        //         '/chatMetaData',
+                                        //       );
+                                        //       update(metaData, {
+                                        //         [value.key]: {
+                                        //           chatName: name.val(),
+                                        //           pfp: name
+                                        //             .val()[0]
+                                        //             .toUpperCase(),
+                                        //           type: 'duo',
+                                        //           participants: {
+                                        //             [user.uid]:
+                                        //                 user.displayName,
+                                        //             [snapshot.val()]:
+                                        //                 name.val(),
+                                        //           },
+                                        //         },
+                                        //       }).then(() => {
+                                        //         update(contactRef, {
+                                        //           [username.replace(
+                                        //             /#/g,
+                                        //             '',
+                                        //           )]: value.key,
+                                        //         })
+                                        //           .then(() => {
+                                        //             update(otherContactRef, {
+                                        //               [(
+                                        //                 `${userInfo.name
+                                        //                 }#${
+                                        //                   userInfo.userCode}`
+                                        //               ).replace(/#/g, '')]:
+                                        //                   value.key,
+                                        //             });
+                                        //           })
+                                        //           .then(() => {
+                                        //             setFormIndex(
+                                        //               (prev) => prev + 1,
+                                        //             );
+                                        //             setIsLoading(false);
+                                        //           });
+                                        //       });
+                                        //     });
+                                        //   });
+                                        // });
                                       }
                                     },
                                   );

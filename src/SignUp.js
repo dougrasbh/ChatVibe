@@ -64,9 +64,6 @@ export default function SignUp() {
     }
   }
 
-  // Exemplo de uso
-  generateKeyPair();
-
   function generateRandomCode() {
     const code = Math.floor(Math.random() * 9000) + 1000;
     return code.toString();

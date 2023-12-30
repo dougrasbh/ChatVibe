@@ -16,26 +16,14 @@ export async function encryptAesKey(aesKey, rsaUserPublicKey) {
   const encryptedAesKeyBase64 = forge.util.encode64(encryptedAesKey)
   return encryptedAesKeyBase64
 }
-  
-  // decifrar a chave AES usando a chave privada do destinatário
-  async function decryptAesKey(encryptedAesKey, privateKey) {
-    const keyBuffer = Buffer.from(privateKey, "base64");
-    const key = await crypto.subtle.importKey(
-      "pkcs8",
-      keyBuffer,
-      { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-      false,
-      ["decrypt"]
-    );
-  
-    const decryptedAesKey = await crypto.subtle.decrypt(
-      { name: "RSA-OAEP" },
-      key,
-      Buffer.from(encryptedAesKey, "base64")
-    );
-  
-    return Buffer.from(decryptedAesKey).toString("base64");
-  }
+
+export async function decryptAesKey(encryptedAesKeyBase64, rsaUserPrivateKey) {
+  const privateKey = forge.pki.privateKeyFromPem(rsaUserPrivateKey)
+  const encryptedAesKey = forge.util.decode64(encryptedAesKeyBase64)
+  const decryptedAesKeyBytes = privateKey.decrypt(encryptedAesKey, 'RSA-OAEP')
+  const decryptedAesKey = forge.util.bytesToHex(decryptedAesKeyBytes);
+  return decryptedAesKey
+}
   
   // cifrar uma mensagem usando a chave AES
   async function encryptMessage(message, aesKey) {

@@ -7,16 +7,18 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { update, ref, getDatabase } from 'firebase/database';
+import { update, ref, getDatabase, onValue } from 'firebase/database';
 import { Link, useNavigate } from 'react-router-dom';
 import abstractBg from './images/abstract-img.jpeg';
 import loadingAni from './images/spinner-loader.gif';
+import { decryptAesKey } from './security';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [aesKeyEncrypted, setAesKeyEncrypted] = useState()
   const navigate = useNavigate();
   useEffect(() => {
     setShowError(false);
@@ -88,9 +90,22 @@ export default function SignUp() {
               const auth = getAuth();
               setIsSigningIn(true);
               signInWithEmailAndPassword(auth, email, password)
-                .then((value) => {
+                .then(async(value) => {
                   const { user } = value;
                   navigate('/homescreen/none');
+                  const privateKey = localStorage.getItem('userPrivateKey')
+                  const userPublicKeyRef = ref(
+                    getDatabase(),
+                    `/user/${auth.currentUser.uid}/`,
+                  )
+                  onValue(userPublicKeyRef, (snapshot) => {
+                    console.log(snapshot.val())
+                    //setAesKeyEncrypted(snapshot.val())
+                  })
+
+                  //const keyDecrypted = await decryptAesKey(aesKeyEncrypted, privateKey)
+
+                  //console.log(keyDecrypted)
                 })
                 .catch((err) => {
                   setShowError(true);

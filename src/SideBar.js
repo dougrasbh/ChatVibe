@@ -465,7 +465,6 @@ function CreateForm({
             disabled={isLoading}
 
             onClick={() => {
-              let otherUserPublicKey = "";
               if (modalType == 'group') {
                 if (  
                   chatName.trim().length !== 0
@@ -633,96 +632,14 @@ function CreateForm({
                                             });
                                           });
                                       } else {
-                                        // gerando chave aes
                                         const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16))
                                         const fullUsername = `${name.val()}#${code.val()}`;
-                                        
-                                        // const userCipherChatKey = encryptAesKey(aesChatKey, userPublicKey)
-                                        // const otherUserCipherChatKey = encryptAesKey(aesChatKey, otherUserPublicKey)
-
-                                        // push(chatRef, {
-                                        //   author: user.uid,
-                                        //   timeCreated: Date.now(),
-                                        //   type: 'duo',
-                                        //   participants: {
-                                        //     [user.uid]: true,
-                                        //     [snapshot.val()]: true,
-                                        //   },
-                                        //   originalParticipants: {
-                                        //     [user.uid]: true,
-                                        //     [snapshot.val()]: true,
-                                        //   },
-                                        //   // sessionKeys: {
-                                        //   //   ['creatorKey'] : userCipherChatKey,
-                                        //   //   ['otherCreatorKey'] : otherUserCipherChatKey,
-                                        //   // }
-                                        // }
-                                        //   )
-                                        //   .then((value) => {
-                                        //       update(userRef, {
-                                        //         [value.key]: true,  
-                                        //       }).then(() => {
-                                        //         update(otherUserRef, {
-                                        //           [value.key]: true,
-                                        //         }).then((result) => {
-                                        //           const metaData = ref(
-                                        //             getDatabase(),
-                                        //             '/chatMetaData',
-                                        //           );
-                                        //           update(metaData, {
-                                        //             [value.key]: {
-                                        //               chatName: name.val(),
-                                        //               pfp: name
-                                        //                 .val()[0]
-                                        //                 .toUpperCase(),
-                                        //               type: 'duo',
-                                        //               participants: {
-                                        //                 [user.uid]:
-                                        //                     user.displayName,
-                                        //                 [snapshot.val()]:
-                                        //                     name.val(),
-                                        //               },
-                                        //             },
-                                        //           }).then(() => {
-                                        //             update(contactRef, {
-                                        //               [username.replace(
-                                        //                 /#/g,
-                                        //                 '',
-                                        //               )]: value.key,
-                                        //             })
-                                        //               .then(() => {
-                                        //                 update(otherContactRef, {
-                                        //                   [(
-                                        //                     `${userInfo.name
-                                        //                     }#${
-                                        //                       userInfo.userCode}`
-                                        //                   ).replace(/#/g, '')]:
-                                        //                       value.key,
-                                        //                 });
-                                        //               })
-                                        //               .then(() => {
-                                        //                 setFormIndex(
-                                        //                   (prev) => prev + 1,
-                                        //                 );
-                                        //                 setIsLoading(false);
-                                        //               });
-                                        //           });
-                                        //         });
-                                        //       });
-                                        //     });
-
-                                        //console.log(typeof(JSON.stringify(userCipherChatKey)))
                                         async function createEncryptedChat(chatRef, user, snapshot) {
-                                            try {
-                                              // Cifrar a chave do usuário
-                                              const userCipherChatKey = await encryptAesKey(aesChatKey, userPublicKey);
-                                          
-                                              // Cifrar a chave da outra pessoa
-                                              const otherUserCipherChatKey = await encryptAesKey(aesChatKey, otherUserPublicKey);
-
-                                              console.log(userCipherChatKey)
-                                              console.log(otherUserCipherChatKey)
-                                              // Criar objeto para ser empurrado para o banco de dados
+                                            try {                   
+                                              const userCipherChatKey = await encryptAesKey(aesChatKey, userPublicKey)
+                                              const otherUserCipherChatKey = await encryptAesKey(aesChatKey, otherUserPublicKey)
+                                              //console.log(userCipherChatKey)
+                                              //console.log(otherUserCipherChatKey)
                                               await push(chatRef, {
                                                 author: user.uid,
                                                 timeCreated: Date.now(),
@@ -798,61 +715,7 @@ function CreateForm({
                                               console.error(error)
                                             }
                                           }
-                                          
-                                          // Uso da função
                                           createEncryptedChat(chatRef, user, snapshot)
-                                        // .then((value) => {
-                                        //   update(userRef, {
-                                        //     [value.key]: true,  
-                                        //   }).then(() => {
-                                        //     update(otherUserRef, {
-                                        //       [value.key]: true,
-                                        //     }).then((result) => {
-                                        //       const metaData = ref(
-                                        //         getDatabase(),
-                                        //         '/chatMetaData',
-                                        //       );
-                                        //       update(metaData, {
-                                        //         [value.key]: {
-                                        //           chatName: name.val(),
-                                        //           pfp: name
-                                        //             .val()[0]
-                                        //             .toUpperCase(),
-                                        //           type: 'duo',
-                                        //           participants: {
-                                        //             [user.uid]:
-                                        //                 user.displayName,
-                                        //             [snapshot.val()]:
-                                        //                 name.val(),
-                                        //           },
-                                        //         },
-                                        //       }).then(() => {
-                                        //         update(contactRef, {
-                                        //           [username.replace(
-                                        //             /#/g,
-                                        //             '',
-                                        //           )]: value.key,
-                                        //         })
-                                        //           .then(() => {
-                                        //             update(otherContactRef, {
-                                        //               [(
-                                        //                 `${userInfo.name
-                                        //                 }#${
-                                        //                   userInfo.userCode}`
-                                        //               ).replace(/#/g, '')]:
-                                        //                   value.key,
-                                        //             });
-                                        //           })
-                                        //           .then(() => {
-                                        //             setFormIndex(
-                                        //               (prev) => prev + 1,
-                                        //             );
-                                        //             setIsLoading(false);
-                                        //           });
-                                        //       });
-                                        //     });
-                                        //   });
-                                        // });
                                       }
                                     },
                                   );

@@ -1,74 +1,21 @@
 import forge from 'node-forge'
 
-function generateRsaKeyPair() {
-  const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
-
-  const privateKeyPem = forge.pki.privateKeyToPem(keyPair.privateKey);
-  const publicKeyPem = forge.pki.publicKeyToPem(keyPair.publicKey);
-
-  return { privateKeyPem, publicKeyPem }
+export async function generateRsaKeyPair() {
+  const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 })
+  const privateKeyPem = forge.pki.privateKeyToPem(keyPair.privateKey)
+  const publicKeyPem = forge.pki.publicKeyToPem(keyPair.publicKey)
+  localStorage.setItem('userPrivateKey', privateKeyPem)
+  return publicKeyPem
 }
 
-// Exemplo de uso
-// const { privateKeyPem, publicKeyPem } = generateRsaKeyPair();
-// console.log('Chave Privada RSA:', privateKeyPem);
-// console.log('Chave Pública RSA:', publicKeyPem);
-
-  
-  // cifrar a chave AES usando a chave pública de um destinatário
-  // async function encryptAesKey(aesKey, publicKey) {
-  //   try {
-  //     const keyBuffer = new Uint8Array(
-  //       atob(publicKey)
-  //         .split("")
-  //         .map((char) => char.charCodeAt(0))
-  //     );
-  //     const key = await crypto.subtle.importKey(
-  //       "spki",
-  //       keyBuffer,
-  //       { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-  //       false,
-  //       ["encrypt"]
-  //     );
-  
-  //     const encryptedAesKey = await crypto.subtle.encrypt(
-  //       { name: "RSA-OAEP" },
-  //       key,
-  //       aesKey
-  //     );
-  
-  //     // Convert the encrypted data to base64
-  //     const encryptedAesKeyBase64 = btoa(
-  //       String.fromCharCode.apply(null, new Uint8Array(encryptedAesKey))
-  //     );
-  
-  //     return encryptedAesKeyBase64;
-  //   } catch (error) {
-  //     console.error("Error encrypting AES key:", error);
-  //     throw error; // Rethrow the error to indicate that something went wrong
-  //   }
-  // }
-
-  export async function encryptAesKey(aesKey, rsaUserPublicKey) {
-    // Criar uma instância do objeto RSA Key
-    const publicKey = forge.pki.publicKeyFromPem(rsaUserPublicKey)
-  
-    // Converter a chave AES para bytes
-    const aesKeyBytes = forge.util.createBuffer(aesKey);
-  
-    // Criptografar a chave AES usando RSA
-    const encryptedAesKey = publicKey.encrypt(aesKeyBytes.getBytes(), 'RSA-OAEP');
-  
-    // Obter o resultado criptografado em base64
-    const encryptedAesKeyBase64 = forge.util.encode64(encryptedAesKey);
-  
-    // Exibir a chave AES criptografada
-    console.log('Chave AES criptografada (base64):', encryptedAesKeyBase64);
-  
-    // Retornar a chave AES criptografada em base64 como string
-    return encryptedAesKeyBase64;
-  };
-  
+export async function encryptAesKey(aesKey, rsaUserPublicKey) {
+  const publicKey = forge.pki.publicKeyFromPem(rsaUserPublicKey)
+  //console.log(publicKey)
+  const aesKeyBytes = forge.util.createBuffer(aesKey)
+  const encryptedAesKey = publicKey.encrypt(aesKeyBytes.getBytes(), 'RSA-OAEP')
+  const encryptedAesKeyBase64 = forge.util.encode64(encryptedAesKey)
+  return encryptedAesKeyBase64
+}
   
   // decifrar a chave AES usando a chave privada do destinatário
   async function decryptAesKey(encryptedAesKey, privateKey) {

@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import loadingAni from "./images/spinner-loader.gif";
 import abstractBg from "./images/abstract-img.jpeg";
+import { generateRsaKeyPair } from "./security";
 
 export default function SignUp() {
   const [username, setUsername] = useState("");
@@ -21,48 +22,6 @@ export default function SignUp() {
   const [nameError, setNameError] = useState("");
   const [showError, setShowError] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
-
-  async function generateKeyPair() {
-    try {
-      const keyPair = await window.crypto.subtle.generateKey(
-        {
-          name: "RSA-OAEP",
-          modulusLength: 2048,
-          publicExponent: new Uint8Array([1, 0, 1]),
-          hash: { name: "SHA-256" },
-        },
-        true,
-        ["encrypt", "decrypt"]
-      );
-
-      const publicKeyArrayBuffer = await window.crypto.subtle.exportKey(
-        "spki",
-        keyPair.publicKey
-      );
-      const privateKeyArrayBuffer = await window.crypto.subtle.exportKey(
-        "pkcs8",
-        keyPair.privateKey
-      );
-
-      // converte os arrays de bytes para base64
-      const publicKey = btoa(
-        String.fromCharCode.apply(null, new Uint8Array(publicKeyArrayBuffer))
-      );
-      const privateKey = btoa(
-        String.fromCharCode.apply(null, new Uint8Array(privateKeyArrayBuffer))
-      );
-
-      // saving the private key on local storage database
-      localStorage.setItem('userPrivateKey', privateKey)
-      
-      return publicKey
-
-      console.log(`PRIVATE KEY:\n${privateKey}\nPUBLIC KEY:\n${publicKey}`);
-    } catch (error) {
-      console.error("Erro ao gerar o par de chaves:", error);
-      throw error;
-    }
-  }
 
   function generateRandomCode() {
     const code = Math.floor(Math.random() * 9000) + 1000;
@@ -108,7 +67,6 @@ export default function SignUp() {
     checkEmail();
     checkUsername();
     setShowError(false);
-    generateKeyPair()
   }, [username, password, email]);
   function checkAndSaveCode(user, userCode) {
     const codesRef = ref(
@@ -124,7 +82,7 @@ export default function SignUp() {
             name: user.displayName,
             email: user.email,
             userCode,
-            userPublicKey: await generateKeyPair()
+            userPublicKey: await generateRsaKeyPair()
           },
         })
           .then(() => {

@@ -1,50 +1,73 @@
-// gerar um par de chaves RSA para cada usuário
-async function generateKeyPair() {
-    const keyPair = await crypto.subtle.generateKey(
-      {
-        name: "RSA-OAEP",
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: { name: "SHA-256" },
-      },
-      true,
-      ["encrypt", "decrypt"]
-    );
-  
-    const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-    const privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-  
-    return {
-      public_key: Buffer.from(publicKey).toString("base64"),
-      private_key: Buffer.from(privateKey).toString("base64"),
-    };
-  }
+import forge from 'node-forge'
+
+function generateRsaKeyPair() {
+  const keyPair = forge.pki.rsa.generateKeyPair({ bits: 2048 });
+
+  const privateKeyPem = forge.pki.privateKeyToPem(keyPair.privateKey);
+  const publicKeyPem = forge.pki.publicKeyToPem(keyPair.publicKey);
+
+  return { privateKeyPem, publicKeyPem }
+}
+
+// Exemplo de uso
+// const { privateKeyPem, publicKeyPem } = generateRsaKeyPair();
+// console.log('Chave Privada RSA:', privateKeyPem);
+// console.log('Chave Pública RSA:', publicKeyPem);
+
   
   // cifrar a chave AES usando a chave pública de um destinatário
-  async function encryptAesKey(aesKey, publicKey) {
-    const keyBuffer = new Uint8Array(atob(publicKey).split('').map(char => char.charCodeAt(0)));
-    const importedKey = await crypto.subtle.importKey(
-      "spki",
-      keyBuffer,
-      { name: "RSA-OAEP", hash: { name: "SHA-256" } },
-      false,
-      ["encrypt"]
-    );
+  // async function encryptAesKey(aesKey, publicKey) {
+  //   try {
+  //     const keyBuffer = new Uint8Array(
+  //       atob(publicKey)
+  //         .split("")
+  //         .map((char) => char.charCodeAt(0))
+  //     );
+  //     const key = await crypto.subtle.importKey(
+  //       "spki",
+  //       keyBuffer,
+  //       { name: "RSA-OAEP", hash: { name: "SHA-256" } },
+  //       false,
+  //       ["encrypt"]
+  //     );
   
-    // Convert aesKey to Uint8Array directly without using atob
-    const aesKeyBuffer = new Uint8Array(aesKey.split('').map(char => char.charCodeAt(0)));
+  //     const encryptedAesKey = await crypto.subtle.encrypt(
+  //       { name: "RSA-OAEP" },
+  //       key,
+  //       aesKey
+  //     );
   
-    const encryptedAesKey = await crypto.subtle.encrypt(
-      { name: "RSA-OAEP" },
-      importedKey,
-      aesKeyBuffer
-    );
+  //     // Convert the encrypted data to base64
+  //     const encryptedAesKeyBase64 = btoa(
+  //       String.fromCharCode.apply(null, new Uint8Array(encryptedAesKey))
+  //     );
   
-    // Convert the encrypted data to base64
-    const encryptedAesKeyBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(encryptedAesKey)));
+  //     return encryptedAesKeyBase64;
+  //   } catch (error) {
+  //     console.error("Error encrypting AES key:", error);
+  //     throw error; // Rethrow the error to indicate that something went wrong
+  //   }
+  // }
+
+  export async function encryptAesKey(aesKey, rsaUserPublicKey) {
+    // Criar uma instância do objeto RSA Key
+    const publicKey = forge.pki.publicKeyFromPem(rsaUserPublicKey)
   
+    // Converter a chave AES para bytes
+    const aesKeyBytes = forge.util.createBuffer(aesKey);
+  
+    // Criptografar a chave AES usando RSA
+    const encryptedAesKey = publicKey.encrypt(aesKeyBytes.getBytes(), 'RSA-OAEP');
+  
+    // Obter o resultado criptografado em base64
+    const encryptedAesKeyBase64 = forge.util.encode64(encryptedAesKey);
+  
+    // Exibir a chave AES criptografada
+    console.log('Chave AES criptografada (base64):', encryptedAesKeyBase64);
+  
+    // Retornar a chave AES criptografada em base64 como string
     return encryptedAesKeyBase64;
-  }
+  };
   
   
   // decifrar a chave AES usando a chave privada do destinatário
@@ -113,7 +136,4 @@ async function generateKeyPair() {
     return new TextDecoder().decode(decryptedMessage);
   }
 
-  module.exports = {
-    encryptAesKey,
-  };
   

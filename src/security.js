@@ -23,25 +23,29 @@ async function generateKeyPair() {
   // cifrar a chave AES usando a chave pública de um destinatário
   async function encryptAesKey(aesKey, publicKey) {
     const keyBuffer = new Uint8Array(atob(publicKey).split('').map(char => char.charCodeAt(0)));
-    const key = await crypto.subtle.importKey(
+    const importedKey = await crypto.subtle.importKey(
       "spki",
       keyBuffer,
       { name: "RSA-OAEP", hash: { name: "SHA-256" } },
       false,
       ["encrypt"]
     );
-
+  
+    // Convert aesKey to Uint8Array directly without using atob
+    const aesKeyBuffer = new Uint8Array(aesKey.split('').map(char => char.charCodeAt(0)));
+  
     const encryptedAesKey = await crypto.subtle.encrypt(
       { name: "RSA-OAEP" },
-      key,
-      new Uint8Array(atob(aesKey).split('').map(char => char.charCodeAt(0)))
+      importedKey,
+      aesKeyBuffer
     );
-
+  
     // Convert the encrypted data to base64
     const encryptedAesKeyBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(encryptedAesKey)));
-
+  
     return encryptedAesKeyBase64;
-}
+  }
+  
   
   // decifrar a chave AES usando a chave privada do destinatário
   async function decryptAesKey(encryptedAesKey, privateKey) {

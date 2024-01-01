@@ -19,6 +19,7 @@ export async function encryptAesKey(aesKey, rsaUserPublicKey) {
 
 export async function decryptAesKey(encryptedAesKeyBase64, rsaUserPrivateKey) {
   const privateKey = forge.pki.privateKeyFromPem(rsaUserPrivateKey)
+  //console.log(encryptedAesKeyBase64)
   const encryptedAesKey = forge.util.decode64(encryptedAesKeyBase64)
   const decryptedAesKeyBytes = privateKey.decrypt(encryptedAesKey, 'RSA-OAEP')
   const decryptedAesKey = forge.util.bytesToHex(decryptedAesKeyBytes);

@@ -18,7 +18,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [aesKeyEncrypted, setAesKeyEncrypted] = useState()
+  const [aesKeyEncrypted, setAesKeyEncrypted] = useState("")
   const navigate = useNavigate();
   useEffect(() => {
     setShowError(false);
@@ -94,18 +94,53 @@ export default function SignUp() {
                   const { user } = value;
                   navigate('/homescreen/none');
                   const privateKey = localStorage.getItem('userPrivateKey')
-                  const userPublicKeyRef = ref(
-                    getDatabase(),
-                    `/user/${auth.currentUser.uid}/`,
-                  )
-                  onValue(userPublicKeyRef, (snapshot) => {
-                    console.log(snapshot.val())
-                    //setAesKeyEncrypted(snapshot.val())
-                  })
 
-                  //const keyDecrypted = await decryptAesKey(aesKeyEncrypted, privateKey)
+                  async function getUserAesKey() {
+                    try {
+                      const userRef = ref(
+                        getDatabase(),
+                        `/users/${auth.currentUser.uid}/chats`,
+                      )
+                       onValue(userRef, (snapshot) => {
+                          const authorRef = ref(
+                            getDatabase(),
+                            `/chats/${Object.keys(snapshot.val())[0]}/author`,
+                          )
+                          onValue(authorRef, (snapshot2) => {
+                            if(auth.currentUser.uid == snapshot2.val()) {
+                              console.log("The current user is the chat author")
+                              const sessionKeyRef = ref(
+                                getDatabase(),
+                                `/chats/${Object.keys(snapshot.val())[0]}/sessionKeys/creatorKey`,
+                              )
+                              onValue(sessionKeyRef, async(snapshot2) => {
+                                const keyDecrypted = await decryptAesKey(snapshot2.val(), privateKey)
+                                console.log(keyDecrypted)
+                              })
+                            } else {
+                              console.log("The current user isn't the chat author")
+                              const sessionKeyRef = ref(
+                                getDatabase(),
+                                `/chats/${Object.keys(snapshot.val())[0]}/sessionKeys/otherCreatorKey`,
+                              )
+                              onValue(sessionKeyRef, async(snapshot2) => {
+                                const keyDecrypted = await decryptAesKey(snapshot2.val(), privateKey)
+                                console.log(keyDecrypted)
+                              })
+                            }
+                          })
+                      })
+                    } catch(err) {
+                      console.log(err)
+                    }
+                  }
 
-                  //console.log(keyDecrypted)
+                  getUserAesKey()
+                  
+
+                  //console.log(aesKeyEncrypted)
+
+                  
                 })
                 .catch((err) => {
                   setShowError(true);

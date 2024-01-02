@@ -41,20 +41,23 @@ export default function MessageTab() {
   const timeoutId = useRef("")
   const replyRefs = useRef({})
 
-  function getChatId() {
-    chatKeyAndId.forEach((item) => {
-      if(chatId == item.chatId) {
-        return item.chatAESKey
-      }
-    })
+  function getChatAESKey() {
+    const chatItem = chatKeyAndId.find(item => chatId === item.chatId);
+    if (chatItem) {
+        return chatItem.chatAESKey;
+    } else {
+        return null;
+    }
   }
+
+  const aesKey = getChatAESKey()
  
   async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";
     if (text.trim() !== "") {
       //console.log(getChatId())
       const tempObj = {
-        content: await encryptMessage(text, getChatId()),
+        content: await encryptMessage(text, aesKey),
         sender: getAuth().currentUser.displayName,
         senderUID: getAuth().currentUser.uid,
         timestamp: Date.now(),
@@ -65,7 +68,7 @@ export default function MessageTab() {
       const mainUnreadRef = ref(getDatabase(), `unreadData/${userState.uid}`);
       push(chatRef, tempObj).then(async(value) => {
         update(metaDataRef, {
-          lastMsg: await encryptMessage(text, getChatId()),
+          lastMsg: await encryptMessage(text, aesKey),
           lastMsgTime: Date.now(),
         }).then(() => {
           if (messages.type == "duo") {
@@ -183,7 +186,7 @@ export default function MessageTab() {
       const messageValues = Object.values(messages.messages ? messages.messages : {});
       console.log(messageValues)
       for (const value of messageValues) {
-        const decryptedContent = await decryptMessage(value.content, getChatId());
+        const decryptedContent = await decryptMessage(value.content, aesKey);
         value.content = decryptedContent
       }
     }

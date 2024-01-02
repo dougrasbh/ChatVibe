@@ -181,17 +181,17 @@ export default function MessageTab() {
     //console.log(messages.content)
   }, [messages, replyInfo]);
 
-  // useEffect(() => {
-  //   async function processMessages() {
-  //     const messageValues = Object.values(messages.messages ? messages.messages : {});
-  //     console.log(messageValues)
-  //     for (const value of messageValues) {
-  //       const decryptedContent = await decryptMessage(value.content, aesKey);
-  //       value.content = decryptedContent
-  //     }
-  //   }
-  //   processMessages();
-  // }, [messages])
+  useEffect(() => {
+    async function processMessages() {
+      const messageValues = Object.values(messages.messages ? messages.messages : {});
+      console.log(messageValues)
+      for (const value of messageValues) {
+        const decryptedContent = await decryptMessage(value.content, aesKey);
+        value.content = decryptedContent
+      }
+    }
+    processMessages();
+  }, [messages])
 
   useEffect(() => {
     setReplyInfo({});

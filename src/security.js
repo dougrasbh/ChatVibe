@@ -25,51 +25,30 @@ export async function decryptAesKey(encryptedAesKeyBase64, rsaUserPrivateKey) {
   const decryptedAesKey = forge.util.bytesToHex(decryptedAesKeyBytes);
   return decryptedAesKey
 }
-  
-  // cifrar uma mensagem usando a chave AES
-  async function encryptMessage(message, aesKey) {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await crypto.subtle.importKey(
-      "raw",
-      Buffer.from(aesKey, "base64"),
-      { name: "AES-GCM" },
-      true,
-      ["encrypt"]
-    );
-  
-    const ciphertext = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      new TextEncoder().encode(message)
-    );
-  
-    const tag = new Uint8Array(await crypto.subtle.exportKey("raw", key));
-  
-    return {
-      ciphertext: Buffer.from(ciphertext).toString("base64"),
-      nonce: Buffer.from(iv).toString("base64"),
-      tag: Buffer.from(tag).toString("base64"),
-    };
-  }
-  
-  // decifrar uma mensagem usando a chave AES
-  async function decryptMessage(nonce, ciphertext, tag, aesKey) {
-    const iv = Buffer.from(nonce, "base64");
-    const key = await crypto.subtle.importKey(
-      "raw",
-      Buffer.from(aesKey, "base64"),
-      { name: "AES-GCM" },
-      false,
-      ["decrypt"]
-    );
-  
-    const decryptedMessage = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv, additionalData: new Uint8Array(0), tagLength: 128 },
-      key,
-      Buffer.from(ciphertext, "base64")
-    );
-  
-    return new TextDecoder().decode(decryptedMessage);
-  }
+
+export async function encryptMessage(textToEncrypt, aesKey) {
+  const aesKeyBuffer = forge.util.createBuffer(forge.util.decode64(aesKey))
+  const textBuffer = forge.util.createBuffer(textToEncrypt, 'utf8');
+  const cipher = forge.cipher.createCipher('AES-ECB', aesKeyBuffer);
+  cipher.start();
+  cipher.update(textBuffer);
+  cipher.finish();
+  const encryptedBytes = cipher.output.getBytes();
+  const encryptedString = forge.util.encode64(encryptedBytes);
+  return encryptedString
+}
+
+export async function decryptMessage(encryptedString, aesKey) {
+  const aesKeyBuffer = forge.util.createBuffer(forge.util.decode64(aesKey))
+  const encryptedBytes = forge.util.decode64(encryptedString)
+  const encryptedBuffer = forge.util.createBuffer(encryptedBytes)
+  const decipher = forge.cipher.createDecipher('AES-ECB', aesKeyBuffer)
+  decipher.start()
+  decipher.update(encryptedBuffer)
+  decipher.finish()
+  const decryptedBytes = decipher.output.getBytes();
+  const decryptedString = forge.util.decodeUtf8(decryptedBytes)
+  return decryptedString
+}
 
   

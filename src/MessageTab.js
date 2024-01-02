@@ -24,9 +24,10 @@ import InfoTab from "./InfoTab";
 import { MessageContext } from "./App";
 import send from "./images/send-message.png";
 import nochatimg from "./images/nochat-img.png";
+import { encryptMessage, decryptMessage } from "./security";
 
 export default function MessageTab() {
-  const { messages, setShowCodeModal, names, userState, isSignedIn } =
+  const { messages, setShowCodeModal, names, userState, isSignedIn, chatKeyAndId } =
     useContext(MessageContext);
   const [text, setText] = useState("");
   const [screen, setScreen] = useState("message");
@@ -39,11 +40,13 @@ export default function MessageTab() {
   const [pfpList, setPfpList] = useState({});
   const timeoutId = useRef("");
   const replyRefs = useRef({});
-  function handleSubmit() {
+
+  //console.log(chatKeyAndId.chatAESKey)
+  async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";
     if (text.trim() !== "") {
       const tempObj = {
-        content: text,
+        content: await encryptMessage(text, chatKeyAndId.chatAESKey),
         sender: getAuth().currentUser.displayName,
         senderUID: getAuth().currentUser.uid,
         timestamp: Date.now(),
@@ -52,9 +55,9 @@ export default function MessageTab() {
       const chatRef = ref(getDatabase(), `/chats/${chatId}/messages`);
       const metaDataRef = ref(getDatabase(), `/chatMetaData/${chatId}`);
       const mainUnreadRef = ref(getDatabase(), `unreadData/${userState.uid}`);
-      push(chatRef, tempObj).then((value) => {
+      push(chatRef, tempObj).then(async(value) => {
         update(metaDataRef, {
-          lastMsg: text,
+          lastMsg: await encryptMessage(text, chatKeyAndId.chatAESKey),
           lastMsgTime: Date.now(),
         }).then(() => {
           if (messages.type == "duo") {
@@ -101,6 +104,8 @@ export default function MessageTab() {
       }, 1000);
     }
   }
+
+
   useEffect(() => {
     const scrollContainer = containerRef.current;
     if (containerRef.current) {
@@ -161,6 +166,8 @@ export default function MessageTab() {
       const container = containerRef.current;
       container.scrollTo(0, container.scrollHeight);
     }
+    // decryptMessage(text, chatKeyAndId.chatAESKey)
+    console.log(messages.content)
   }, [messages, replyInfo]);
   useEffect(() => {
     setReplyInfo({});
@@ -325,6 +332,7 @@ export default function MessageTab() {
             }`}
             ref={containerRef}
           >
+            {/* MOSTRA AS MENSAGENS NA TELA */}
             {Object.values(messages.messages ? messages.messages : {}).map(
               (value, index) => (
                 <div key={index}>
@@ -415,6 +423,7 @@ export default function MessageTab() {
               <></>
             )}
             <div className="flex justify-between">
+              {/* DIGITA AS MENSAGENS AQUI */}
               <input
                 className="bg-inputColor outline-none flex-1"
                 placeholder="Type message"
@@ -462,6 +471,7 @@ export default function MessageTab() {
                 }}
               />
               <div>
+                {/* AQUI ENVIA A MENSAGEM */}
                 <img
                   src={send}
                   className="h-6 mr-4 hover:opacity-80 transition-all duration-200 cursor-pointer"

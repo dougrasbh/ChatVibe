@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useContext } from 'react';
 import { Tilt } from 'react-tilt';
 import {
   CreateUserWithEmailAndPassword,
@@ -12,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import abstractBg from './images/abstract-img.jpeg';
 import loadingAni from './images/spinner-loader.gif';
 import { decryptAesKey } from './security';
+import { MessageContext } from './App';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -19,6 +21,10 @@ export default function SignUp() {
   const [showError, setShowError] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [aesKeyEncrypted, setAesKeyEncrypted] = useState("")
+  const {
+    chatKeyAndId,
+    setChatKeyAndId
+  } = useContext(MessageContext);
   const navigate = useNavigate();
   useEffect(() => {
     setShowError(false);
@@ -116,6 +122,10 @@ export default function SignUp() {
                               onValue(sessionKeyRef, async(snapshot2) => {
                                 const keyDecrypted = await decryptAesKey(snapshot2.val(), privateKey)
                                 console.log(keyDecrypted)
+                                setChatKeyAndId({
+                                  chatAESKey: keyDecrypted,
+                                  chatId: Object.keys(snapshot.val())[0] 
+                                })
                               })
                             } else {
                               console.log("The current user isn't the chat author")
@@ -126,6 +136,10 @@ export default function SignUp() {
                               onValue(sessionKeyRef, async(snapshot2) => {
                                 const keyDecrypted = await decryptAesKey(snapshot2.val(), privateKey)
                                 console.log(keyDecrypted)
+                                setChatKeyAndId({
+                                  chatAESKey: keyDecrypted,
+                                  chatId: Object.keys(snapshot.val())[0] 
+                                })
                               })
                             }
                           })
@@ -134,13 +148,7 @@ export default function SignUp() {
                       console.log(err)
                     }
                   }
-
                   getUserAesKey()
-                  
-
-                  //console.log(aesKeyEncrypted)
-
-                  
                 })
                 .catch((err) => {
                   setShowError(true);

@@ -1,30 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useContext } from 'react';
-import { Tilt } from 'react-tilt';
+import React, { useState, useEffect } from "react";
+import { useContext } from "react";
+import { Tilt } from "react-tilt";
 import {
   CreateUserWithEmailAndPassword,
   createUserWithEmailAndPassword,
   getAuth,
   signInWithEmailAndPassword,
   updateProfile,
-} from 'firebase/auth';
-import { update, ref, getDatabase, onValue } from 'firebase/database';
-import { Link, useNavigate } from 'react-router-dom';
-import abstractBg from './images/abstract-img.jpeg';
-import loadingAni from './images/spinner-loader.gif';
-import { decryptAesKey } from './security';
-import { MessageContext } from './App';
+} from "firebase/auth";
+import { update, ref, getDatabase, onValue } from "firebase/database";
+import { Link, useNavigate } from "react-router-dom";
+import abstractBg from "./images/abstract-img.jpeg";
+import loadingAni from "./images/spinner-loader.gif";
+import { decryptAesKey } from "./security";
+import { MessageContext } from "./App";
 
 export default function SignUp() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showError, setShowError] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [aesKeyEncrypted, setAesKeyEncrypted] = useState("")
-  const {
-    chatKeyAndId,
-    setChatKeyAndId
-  } = useContext(MessageContext);
+  const [aesKeyEncrypted, setAesKeyEncrypted] = useState("");
+  const { chatKeyAndId, setChatKeyAndId } = useContext(MessageContext);
   const navigate = useNavigate();
   useEffect(() => {
     setShowError(false);
@@ -80,10 +77,9 @@ export default function SignUp() {
             type="password"
           />
           <div
-            className={
-                `w-full h-12 bg-red-200 rounded-lg flex items-center p-3 mt-3${
-                  showError ? ' flex' : ' hidden'}`
-              }
+            className={`w-full h-12 bg-red-200 rounded-lg flex items-center p-3 mt-3${
+              showError ? " flex" : " hidden"
+            }`}
           >
             <p className="text-red-500 text-xs">
               Invalid email or password. Please try again.
@@ -96,68 +92,83 @@ export default function SignUp() {
               const auth = getAuth();
               setIsSigningIn(true);
               signInWithEmailAndPassword(auth, email, password)
-                .then(async(value) => {
+                .then(async (value) => {
                   const { user } = value;
-                  navigate('/homescreen/none');
-                  const privateKey = localStorage.getItem('userPrivateKey')
+                  navigate("/homescreen/none");
+                  const privateKey = localStorage.getItem("userPrivateKey");
 
                   async function getUserAesKey() {
                     try {
                       const userRef = ref(
                         getDatabase(),
-                        `/users/${auth.currentUser.uid}/chats`,
-                      )
+                        `/users/${auth.currentUser.uid}/chats`
+                      );
                       onValue(userRef, (snapshot) => {
                         const snapshotValue = snapshot.val();
-                      
+
                         if (snapshotValue) {
                           const chatKeys = Object.keys(snapshotValue);
-                      
+                          console.log("CHAT KEYS: ", chatKeys);
                           if (chatKeys.length > 0) {
-                            const chatAuthorRef = ref(
-                              getDatabase(),
-                              `/chats/${chatKeys[0]}/author`,
-                            );
-                      
-                            onValue(chatAuthorRef, (snapshot2) => {
-                              const authorUID = snapshot2.val();
-                      
-                              if (authorUID === null || authorUID === undefined) {
-                                console.log("No author found");
-                              } else if (auth.currentUser.uid === authorUID) {
-                                console.log("The current user is the chat author");
-                                const sessionKeyRef = ref(
-                                  getDatabase(),
-                                  `/chats/${chatKeys[0]}/sessionKeys/creatorKey`,
-                                );
-                      
-                                onValue(sessionKeyRef, async (snapshot3) => {
-                                  const keyDecrypted = await decryptAesKey(snapshot3.val(), privateKey);
-                                  console.log(keyDecrypted);
-                      
-                                  setChatKeyAndId({
-                                    chatAESKey: keyDecrypted,
-                                    chatId: chatKeys[0],
+                            for (key of chatKeys) {
+                              const chatAuthorRef = ref(
+                                getDatabase(),
+                                `/chats/${key}/author`
+                              );
+
+                              onValue(chatAuthorRef, (snapshot2) => {
+                                const authorUID = snapshot2.val();
+
+                                if (
+                                  authorUID === null ||
+                                  authorUID === undefined
+                                ) {
+                                  console.log("No author found");
+                                } else if (auth.currentUser.uid === authorUID) {
+                                  console.log(
+                                    "The current user is the chat author"
+                                  );
+                                  const sessionKeyRef = ref(
+                                    getDatabase(),
+                                    `/chats/${key}/sessionKeys/creatorKey`
+                                  );
+
+                                  onValue(sessionKeyRef, async (snapshot3) => {
+                                    const keyDecrypted = await decryptAesKey(
+                                      snapshot3.val(),
+                                      privateKey
+                                    );
+                                    console.log(keyDecrypted);
+
+                                    setChatKeyAndId({
+                                      chatAESKey: keyDecrypted,
+                                      chatId: key,
+                                    });
                                   });
-                                });
-                              } else {
-                                console.log("The current user isn't the chat author");
-                                const sessionKeyRef = ref(
-                                  getDatabase(),
-                                  `/chats/${chatKeys[0]}/sessionKeys/otherCreatorKey`,
-                                );
-                      
-                                onValue(sessionKeyRef, async (snapshot3) => {
-                                  const keyDecrypted = await decryptAesKey(snapshot3.val(), privateKey);
-                                  console.log(keyDecrypted);
-                      
-                                  setChatKeyAndId({
-                                    chatAESKey: keyDecrypted,
-                                    chatId: chatKeys[0],
+                                } else {
+                                  console.log(
+                                    "The current user isn't the chat author"
+                                  );
+                                  const sessionKeyRef = ref(
+                                    getDatabase(),
+                                    `/chats/${key}/sessionKeys/otherCreatorKey`
+                                  );
+
+                                  onValue(sessionKeyRef, async (snapshot3) => {
+                                    const keyDecrypted = await decryptAesKey(
+                                      snapshot3.val(),
+                                      privateKey
+                                    );
+                                    console.log(keyDecrypted);
+
+                                    setChatKeyAndId({
+                                      chatAESKey: keyDecrypted,
+                                      chatId: key,
+                                    });
                                   });
-                                });
-                              }
-                            });
+                                }
+                              });
+                            }
                           } else {
                             console.log("No chat keys found");
                           }
@@ -165,12 +176,11 @@ export default function SignUp() {
                           console.log("Snapshot value is null or undefined");
                         }
                       });
-                      
-                    } catch(err) {
-                      console.log(err)
+                    } catch (err) {
+                      console.log(err);
                     }
                   }
-                  getUserAesKey()
+                  getUserAesKey();
                 })
                 .catch((err) => {
                   setShowError(true);
@@ -180,12 +190,15 @@ export default function SignUp() {
                 });
             }}
           >
-            {!isSigningIn ? <p>Login</p> : <img src={loadingAni} className="w-6 h-6 m-auto" />}
+            {!isSigningIn ? (
+              <p>Login</p>
+            ) : (
+              <img src={loadingAni} className="w-6 h-6 m-auto" />
+            )}
           </button>
 
           <p className="text-xs text-white text-center">
-            Dont have a account?
-            {' '}
+            Dont have a account?{" "}
             <Link to="/auth">
               <span className=" text-btnColor cursor-pointer">Sign Up</span>
             </Link>

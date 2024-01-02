@@ -169,6 +169,18 @@ export default function MessageTab() {
     // decryptMessage(text, chatKeyAndId.chatAESKey)
     console.log(messages.content)
   }, [messages, replyInfo]);
+
+  useEffect(() => {
+    async function processMessages() {
+      const messageValues = Object.values(messages.messages ? messages.messages : {});
+      for (const value of messageValues) {
+        const decryptedContent = await decryptMessage(value.content, chatKeyAndId.chatAESKey);
+        value.content = decryptedContent
+      }
+    }
+    processMessages();
+  }, [messages])
+
   useEffect(() => {
     setReplyInfo({});
   }, [chatId, messages]);

@@ -39,6 +39,7 @@ export async function encryptMessage(textToEncrypt, aesKey) {
 }
 
 export async function decryptMessage(encryptedString, aesKey) {
+  console.log(encryptedString)
   const aesKeyBuffer = forge.util.createBuffer(forge.util.decode64(aesKey))
   const encryptedBytes = forge.util.decode64(encryptedString)
   const encryptedBuffer = forge.util.createBuffer(encryptedBytes)

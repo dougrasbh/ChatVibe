@@ -28,36 +28,44 @@ import { encryptMessage, decryptMessage } from "./security";
 
 export default function MessageTab() {
   const { messages, setShowCodeModal, names, userState, isSignedIn, chatKeyAndId } =
-    useContext(MessageContext);
-  const [text, setText] = useState("");
-  const [screen, setScreen] = useState("message");
-  const [replyInfo, setReplyInfo] = useState({});
-  const [metaInfo, setMetaInfo] = useState({});
-  const [showDownArrow, setShowDownArrow] = useState(false);
-  const [typingState, setTypingState] = useState({});
-  const containerRef = useRef();
-  const { chatId } = useParams();
-  const [pfpList, setPfpList] = useState({});
-  const timeoutId = useRef("");
-  const replyRefs = useRef({});
+    useContext(MessageContext)
+  const [text, setText] = useState("")
+  const [screen, setScreen] = useState("message")
+  const [replyInfo, setReplyInfo] = useState({})
+  const [metaInfo, setMetaInfo] = useState({})
+  const [showDownArrow, setShowDownArrow] = useState(false)
+  const [typingState, setTypingState] = useState({})
+  const containerRef = useRef()
+  const { chatId } = useParams()
+  const [pfpList, setPfpList] = useState()
+  const timeoutId = useRef("")
+  const replyRefs = useRef({})
 
-  //console.log(chatKeyAndId.chatAESKey)
+  function getChatId() {
+    chatKeyAndId.forEach((item) => {
+      if(chatId == item.chatId) {
+        return item.chatAESKey
+      }
+    })
+  }
+ 
   async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";
     if (text.trim() !== "") {
+      //console.log(getChatId())
       const tempObj = {
-        content: await encryptMessage(text, chatKeyAndId.chatAESKey),
+        content: await encryptMessage(text, getChatId()),
         sender: getAuth().currentUser.displayName,
         senderUID: getAuth().currentUser.uid,
         timestamp: Date.now(),
         replyInfo: msgType == "reply" ? replyInfo : false,
-      };
+      }
       const chatRef = ref(getDatabase(), `/chats/${chatId}/messages`);
       const metaDataRef = ref(getDatabase(), `/chatMetaData/${chatId}`);
       const mainUnreadRef = ref(getDatabase(), `unreadData/${userState.uid}`);
       push(chatRef, tempObj).then(async(value) => {
         update(metaDataRef, {
-          lastMsg: await encryptMessage(text, chatKeyAndId.chatAESKey),
+          lastMsg: await encryptMessage(text, getChatId()),
           lastMsgTime: Date.now(),
         }).then(() => {
           if (messages.type == "duo") {
@@ -167,14 +175,15 @@ export default function MessageTab() {
       container.scrollTo(0, container.scrollHeight);
     }
     // decryptMessage(text, chatKeyAndId.chatAESKey)
-    console.log(messages.content)
+    //console.log(messages.content)
   }, [messages, replyInfo]);
 
   useEffect(() => {
     async function processMessages() {
       const messageValues = Object.values(messages.messages ? messages.messages : {});
+      console.log(messageValues)
       for (const value of messageValues) {
-        const decryptedContent = await decryptMessage(value.content, chatKeyAndId.chatAESKey);
+        const decryptedContent = await decryptMessage(value.content, getChatId());
         value.content = decryptedContent
       }
     }
@@ -512,19 +521,9 @@ export default function MessageTab() {
   );
 }
 
-function MessageBox({
-  pfp,
-  name,
-  msg,
-  date,
-  setReplyInfo,
-  msgType,
-  chatUid,
-  makeNewRef,
-  scrollToMsg,
-  data,
-  pfpList,
-}) {
+// MOSTRA AS MENSAGENS NA BARRA LATERAL
+
+async function MessageBox({ pfp, name, msg, date, setReplyInfo, msgType, chatUid, makeNewRef,scrollToMsg, data, pfpList}) {
   const getColorFromLetter = (letter) => {
     const colors = [
       " bg-gradient-to-r from-red-500 to-pink-500",
@@ -537,10 +536,15 @@ function MessageBox({
       " bg-gradient-to-r from-gray-500 to-gray-700",
     ];
 
+    
+
     // Get the index based on the letter's char code
     const index = letter.charCodeAt(0) % colors.length;
     return colors[index];
   };
+
+  //console.log(msg)
+
   return !data.type ? (
     <div
       className="flex flex-col justify-center py-2 pl-5 relative group hover:bg-slate-800"
@@ -598,6 +602,7 @@ function MessageBox({
             <p className="text-white">{name}</p>
             <p className=" text-subColor text-xs">{date}</p>
           </div>
+          {/* MOSTRA A MENSAGEM NA LATERAL */}
           <p className="text-white text-sm font-light">{msg}</p>
         </div>
       </div>

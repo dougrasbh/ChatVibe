@@ -65,7 +65,7 @@ function App() {
   const previousState = useRef(messages);
   const firstRender = useRef(true);
   const originalRef = useRef([]);
-  const [chatKeyAndId, setChatKeyAndId] = useState({})
+  const [chatKeyAndId, setChatKeyAndId] = useState([])
   const navigate = useNavigate()
   useEffect(() => {
     let isSignedIn = false;

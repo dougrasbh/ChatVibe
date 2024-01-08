@@ -68,6 +68,8 @@ export default function SideBar() {
   //   })
   }, []);
 
+  let auxArray = []
+
   function SidebarIcon({ icon, text, type }) {
     return (
       <div
@@ -480,85 +482,110 @@ function CreateForm({
               //console.log("members: ", membersUsernames)
               
               if (modalType == 'group') {
-                const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16))
-                for (const member of membersUsernames.split(" ")) {
-                  //console.log("member: ", member)
-                  if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(member)) {
-                    const splitName = member.split('#');
-                    const codeRef = ref(
-                      getDatabase(),
-                      `userCodes/${splitName[0]}/${splitName[1]}`,
-                    )
-
-                    get(codeRef).then((snapshot) => {
-                      if(snapshot.exists()) {
-                        const userRef = ref(
-                          getDatabase(),
-                          `users/${snapshot.val()}/userPublicKey`,
-                        )
-                        onValue(userRef, async(snapshot1) => {
-                          let auxArray = []
-                          auxArray.push({
-                            'key': await encryptAesKey(aesChatKey, snapshot1.val()),
-                            'user': snapshot.val()
-                          })
-                          console.log(auxArray)
-                          setGroupUsersKeys(auxArray)
-                        })
+                async function encryptGroup() {
+                  const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16));
+                  const updatedGroupUsersKeys = [];  // Array para armazenar os objetos para cada usuário
+                
+                  for (const member of membersUsernames.split(" ")) {
+                    console.log("member: ", member);
+                    if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(member)) {
+                      const splitName = member.split('#');
+                      const codeRef = ref(
+                        getDatabase(),
+                        `userCodes/${splitName[0]}/${splitName[1]}`,
+                      );
+                
+                      try {
+                        const snapshot = await get(codeRef);
+                
+                        if (snapshot.exists()) {
+                          const userRef = ref(
+                            getDatabase(),
+                            `users/${snapshot.val()}/userPublicKey`,
+                          );
+                
+                          const userPublicKeySnapshot = await get(userRef);
+                          const encryptedKey = await encryptAesKey(aesChatKey, userPublicKeySnapshot.val());
+                
+                          // Adiciona um objeto ao array para cada usuário
+                          updatedGroupUsersKeys.push({
+                            key: encryptedKey,
+                            user: snapshot.val(),
+                          });
+                        }
+                      } catch (error) {
+                        console.error("Erro ao obter dados do banco de dados:", error);
                       }
-                    })
-
-                    //console.log(codeRef)
+                    }
                   }
+                
+                  // Agora, updatedGroupUsersKeys é um array de objetos
+                  setGroupUsersKeys(updatedGroupUsersKeys);
+                
+                  // Se você precisar atualizar o estado, faça isso aqui
+                  // setGroupUsersKeys((prevGroupUsersKeys) => [
+                  //   ...prevGroupUsersKeys,
+                  //   ...updatedGroupUsersKeys,
+                  // ]);
                 }
+                
+                
+                
                 ///////////////////////////////////////////////////////////
                 if (  
                   chatName.trim().length !== 0
                   && selectedEmoji.trim().length !== 0
                 ) {
-                  setIsLoading(true);
-                  const chatRef = ref(getDatabase(), '/chats');
-
-                  const userRef = ref(
-                    getDatabase(),
-                    `/users/${auth.currentUser.uid}/chats`,
-                  )
-                  const codesRef = ref(getDatabase(), '/codes');
-                  const metaData = ref(getDatabase(), '/chatMetaData');
-                  setShowEmoji(false);
-                  push(chatRef, {
-                    author: auth.currentUser.uid,
-                    chatName,
-                    pfp: selectedEmoji,
-                    timeCreated: Date.now(),
-                    participants: {
-                      [auth.currentUser.uid]: true,
-                    },
-                    sessionsKeys: groupUsersKeys
-                    // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
-                  }).then((value) => {
-                    update(userRef, {
-                      [value.key]: true,
-                    }).then((result) => {
-                      const uid = generateUID();
-                      update(codesRef, {
-                        [uid]: value.key,
+                  encryptGroup().then(() => {
+                    console.log(groupUsersKeys)
+                    setIsLoading(true);
+                    const chatRef = ref(getDatabase(), '/chats');
+  
+                    const userRef = ref(
+                      getDatabase(),
+                      `/users/${auth.currentUser.uid}/chats`,
+                    )
+                    const codesRef = ref(getDatabase(), '/codes');
+                    const metaData = ref(getDatabase(), '/chatMetaData');
+                    setShowEmoji(false);
+                    
+                    push(chatRef, {
+                      author: auth.currentUser.uid,
+                      chatName,
+                      pfp: selectedEmoji,
+                      timeCreated: Date.now(),
+                      participants: {
+                        [auth.currentUser.uid]: true,
+                      },
+                      sessionsKeys: groupUsersKeys
+                      // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
+                    }).then((value) => {
+                      update(userRef, {
+                        [value.key]: true,
                       }).then((result) => {
-                        update(metaData, {
-                          [value.key]: {
-                            chatName,
-                            pfp: selectedEmoji,
-                            admin: {
-                              [auth.currentUser.uid]: true,
+                        const uid = generateUID();
+                        update(codesRef, {
+                          [uid]: value.key,
+                        }).then((result) => {
+                          update(metaData, {
+                            [value.key]: {
+                              chatName,
+                              pfp: selectedEmoji,
+                              admin: {
+                                [auth.currentUser.uid]: true,
+                              },
                             },
-                          },
-                        }).then(() => {
-                          setFormIndex((prev) => prev + 1);
-                          setIsLoading(false);
+                          }).then(() => {
+                            setFormIndex((prev) => prev + 1);
+                            setIsLoading(false);
+                          });
                         });
                       });
                     });
-                  });
+                  }).catch((err) => {
+                    console.log(err)
+                  })
+                  
                 } else if (selectedEmoji.trim().length == 0) {
                   setError('Please choose an emoji for group pfp');
                 } else {

@@ -496,12 +496,13 @@ function CreateForm({
                           getDatabase(),
                           `users/${snapshot.val()}/userPublicKey`,
                         )
-                        onValue(userRef, (snapshot1) => {
+                        onValue(userRef, async(snapshot1) => {
                           let auxArray = []
                           auxArray.push({
-                            'key': encryptAesKey(aesChatKey, snapshot1.val()),
+                            'key': await encryptAesKey(aesChatKey, snapshot1.val()),
                             'user': snapshot.val()
                           })
+                          console.log(auxArray)
                           setGroupUsersKeys(auxArray)
                         })
                       }

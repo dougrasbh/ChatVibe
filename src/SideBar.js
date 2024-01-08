@@ -236,6 +236,7 @@ function CreateForm({
   const [selectedEmoji, setSelectedEmoji] = useState('');
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
+  const [membersUsernames, setMembersUsernames] = useState('');
   const [showTick, setShowTick] = useState(false);
   const { chatId } = useParams();
   const [duoError, setDuoError] = useState('');
@@ -378,6 +379,16 @@ function CreateForm({
                   value={chatName}
                 />
                 <p className="text-sm text-red-500">{error}</p>
+                <p className="text-start text-sm mb-2">Friend's usernames</p>
+                <input
+                  className="w-full border border-gray-200 rounded-lg p-2 text-sm outline-none"
+                  placeholder="username#1232 username#3435 username#2372"
+                  onChange={(event) => {
+                    setMembersUsernames(event.target.value);
+                  }}
+                  value={membersUsernames}
+                />
+                <p className="text-sm text-red-500">{error}</p>
               </>
             ) : (
               <div className=" w-6/12 m-auto">
@@ -465,7 +476,12 @@ function CreateForm({
             disabled={isLoading}
 
             onClick={() => {
+              console.log("members: ", membersUsernames)
               if (modalType == 'group') {
+                for (const member of membersUsernames.split(" ")) {
+                  console.log("member: ", member)
+                }
+                ///////////////////////////////////////////////////////////
                 if (  
                   chatName.trim().length !== 0
                   && selectedEmoji.trim().length !== 0
@@ -517,6 +533,7 @@ function CreateForm({
                 } else {
                   setError('Please enter a valid chat name');
                 }
+                //////////////////////////////////////////////////////////
               } else if (showTick) {
                 const chatRef = ref(getDatabase(), '/chats');
                 const userRef = ref(

@@ -21,6 +21,8 @@ import {
 import SignUp from './SignUp';
 import SignIn from './SignIn';
 import DashBoard from './Dashboard';
+import { decryptAesKey } from './security';
+
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_API_KEY,
@@ -64,12 +66,90 @@ function App() {
       setIsSignedIn(user);
       if (user && !isSignedIn) {
         // User is signed in, navigate to homescreen/none
-        navigate("/homescreen/none");
-      }
+        const privateKey = localStorage.getItem("userPrivateKey")
+        const auth = getAuth()
+        async function getUserAesKey() {
+          try {
+            const userRef = ref(
+              getDatabase(),
+              `/users/${auth.currentUser.uid}/chats`
+            );
+            onValue(userRef, (snapshot) => {
+              const snapshotValue = snapshot.val();
+            
+              if (snapshotValue) {
+                const chatKeys = Object.keys(snapshotValue);
+            
+                if (chatKeys.length > 0) {
+                  const chatKeyAndIds = []
+            
+                  for (const key of chatKeys) {
+                    const chatAuthorRef = ref(getDatabase(), `/chats/${key}/author`);
+            
+                    onValue(chatAuthorRef, (snapshot2) => {
+                      const authorUID = snapshot2.val();
+            
+                      if (authorUID === null || authorUID === undefined) {
+                        console.log("No author found");
+                      } else if (auth.currentUser.uid === authorUID) {
+                        console.log("The current user is the chat author");
+                        const sessionKeyRef = ref(
+                          getDatabase(),
+                          `/chats/${key}/sessionKeys/creatorKey`
+                        );
+            
+                        onValue(sessionKeyRef, async (snapshot3) => {
+                          const keyDecrypted = await decryptAesKey(
+                            snapshot3.val(),
+                            privateKey
+                          );
+            
+                          chatKeyAndIds.push({
+                            chatAESKey: keyDecrypted,
+                            chatId: key,
+                          });
+                        });
+                      } else {
+                        console.log("The current user isn't the chat author");
+                        const sessionKeyRef = ref(
+                          getDatabase(),
+                          `/chats/${key}/sessionKeys/otherCreatorKey`
+                        );
+            
+                        onValue(sessionKeyRef, async (snapshot3) => {
+                          const keyDecrypted = await decryptAesKey(
+                            snapshot3.val(),
+                            privateKey
+                          )
+                          chatKeyAndIds.push({
+                            chatAESKey: keyDecrypted,
+                            chatId: key,
+                          })
+                        })
+                      }
+                    })
+                  }
+                  setChatKeyAndId(chatKeyAndIds)
+                } else {
+                  console.log("No chat keys found")
+                }
+              } else {
+                console.log("Snapshot value is null or undefined")
+              }
+            });
+            
+          } catch (err) {
+            console.log(err);
+          }
+        }
+
+    getUserAesKey()
+    navigate("/homescreen/none");
+    }
       isSignedIn = true;
     });
     return () => unsubscribe();
-  }, []); 
+  }, [])
   
   function participantMap(mapData) {
     Promise.all(

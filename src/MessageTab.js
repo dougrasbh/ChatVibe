@@ -10,7 +10,7 @@ import {
   off,
 } from "firebase/database";
 import { Link, useParams } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { HiOutlineUserGroup, HiOutlineArrowNarrowRight } from "react-icons/hi";
 import { AiOutlineUserDelete, AiOutlineArrowDown } from "react-icons/ai";
 import { FiLink, FiEdit2 } from "react-icons/fi";
@@ -183,12 +183,15 @@ export default function MessageTab() {
 
   useEffect(() => {
     async function processMessages() {
-      const messageValues = Object.values(messages.messages ? messages.messages : {});
-      console.log(messageValues)
-      for (const value of messageValues) {
-        const decryptedContent = await decryptMessage(value.content, aesKey);
-        value.content = decryptedContent
-      }
+      onAuthStateChanged(getAuth(), async() => {
+        const messageValues = Object.values(messages.messages ? messages.messages : {});
+        console.log(messageValues)
+        for (const value of messageValues) {
+          const decryptedContent = await decryptMessage(value.content, aesKey);
+          value.content = decryptedContent
+        }
+      })
+      
     }
     processMessages();
   }, [messages])

@@ -243,6 +243,7 @@ function CreateForm({
   const [isLoading, setIsLoading] = useState(false);
   const [userPublicKey, setUserPublicKey] = useState("")
   const [otherUserPublicKey, setOtherUserPublicKey] = useState("")
+  const [groupUsersKeys, setGroupUsersKeys] = useState("")
   const navigate = useNavigate();
 
   function generateUID() {
@@ -476,10 +477,38 @@ function CreateForm({
             disabled={isLoading}
 
             onClick={() => {
-              console.log("members: ", membersUsernames)
+              //console.log("members: ", membersUsernames)
+              
               if (modalType == 'group') {
+                const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16))
                 for (const member of membersUsernames.split(" ")) {
-                  console.log("member: ", member)
+                  //console.log("member: ", member)
+                  if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(member)) {
+                    const splitName = member.split('#');
+                    const codeRef = ref(
+                      getDatabase(),
+                      `userCodes/${splitName[0]}/${splitName[1]}`,
+                    )
+
+                    get(codeRef).then((snapshot) => {
+                      if(snapshot.exists()) {
+                        const userRef = ref(
+                          getDatabase(),
+                          `users/${snapshot.val()}/userPublicKey`,
+                        )
+                        onValue(userRef, (snapshot1) => {
+                          let auxArray = []
+                          auxArray.push({
+                            'key': encryptAesKey(aesChatKey, snapshot1.val()),
+                            'user': snapshot.val()
+                          })
+                          setGroupUsersKeys(auxArray)
+                        })
+                      }
+                    })
+
+                    //console.log(codeRef)
+                  }
                 }
                 ///////////////////////////////////////////////////////////
                 if (  
@@ -504,6 +533,7 @@ function CreateForm({
                     participants: {
                       [auth.currentUser.uid]: true,
                     },
+                    sessionsKeys: groupUsersKeys
                     // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
                   }).then((value) => {
                     update(userRef, {

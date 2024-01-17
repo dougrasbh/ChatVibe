@@ -257,6 +257,16 @@ function CreateForm({
     setUid(uid.join(''));
     return uid.join('');
   }
+  
+  async function addMembersKeys(groupUsersKeysList, chatDbRef, chatId){
+  for (const groupUser of groupUsersKeysList) {
+    console.log(groupUser.user, groupUser.key); // Log individual elements to verify
+    await chatDbRef.child(`${chatId}/sessionKeys`).push({
+      [groupUser.user]: groupUser.key
+    });
+  }
+}
+
   function handleClose() {
     setShowModal(false);
     setFormIndex(1);
@@ -479,8 +489,6 @@ function CreateForm({
             disabled={isLoading}
 
             onClick={() => {
-              //console.log("members: ", membersUsernames)
-              
               if (modalType == 'group') {
                 async function encryptGroup() {
                   const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16));
@@ -528,16 +536,13 @@ function CreateForm({
                   //   ...updatedGroupUsersKeys,
                   // ]);
                 }
-                
-                
-                
                 ///////////////////////////////////////////////////////////
                 if (  
                   chatName.trim().length !== 0
                   && selectedEmoji.trim().length !== 0
                 ) {
                   encryptGroup().then(() => {
-                    console.log(groupUsersKeys)
+
                     setIsLoading(true);
                     const chatRef = ref(getDatabase(), '/chats');
   
@@ -557,13 +562,19 @@ function CreateForm({
                       participants: {
                         [auth.currentUser.uid]: true,
                       },
-                      sessionsKeys: groupUsersKeys
+                      groupUsersKeys
                       // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
                     }).then((value) => {
                       update(userRef, {
                         [value.key]: true,
                       }).then((result) => {
                         const uid = generateUID();
+                        console.log(groupUsersKeys); // Check the contents of groupUsersKeys
+                        try {
+                          addMembersKeys(groupUsersKeys, chatRef, value.key);
+                        } catch (e) {
+                          console.log(e, ' groupUsersKeys is empty or undefined.');
+                        }
                         update(codesRef, {
                           [uid]: value.key,
                         }).then((result) => {

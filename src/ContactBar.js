@@ -119,7 +119,7 @@ function ContactBox({
   const { chatId } = useParams();
   const [userPfp, setUserPfp] = useState(null);
   useEffect(() => {
-    console.log(name, uid);
+    // console.log(name, uid);
   }, [lastMsg]);
   const getColorFromLetter = (letter) => {
     const colors = [
@@ -152,7 +152,7 @@ function ContactBox({
         });
       } else {
         setUserPfp(null);
-        console.log(uid,name, userPfp, "User pfp", "returning null");
+        // console.log(uid,name, userPfp, "User pfp", "returning null");
       }
     }
   }, [filteredArr]);

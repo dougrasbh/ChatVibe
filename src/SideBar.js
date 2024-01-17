@@ -261,10 +261,15 @@ function CreateForm({
     return uid.join("");
   }
 
-  async function addMembersKeys(groupUsersKeysList, chatDbRef, chatId) {
+  async function addMembersKeys(groupUsersKeysList, chatDbRef, participantRef) {
     await update(chatDbRef, {
       [groupUsersKeysList.user]: groupUsersKeysList.key,
+    }).then(async() => {
+      await update(participantRef, {
+        [groupUsersKeysList.user]: true
+      })
     })
+
   }
   
 
@@ -579,26 +584,16 @@ function CreateForm({
                         update(userRef, {
                           [value.key]: true,
                         }).then(async(result) => {
-                          const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`);
+                          const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`)
+                          const participantsRef = ref(getDatabase(), `/chats/${value.key}/participants`)
                           const uid = generateUID();
                           groupUsersKeys.map(async(item) => {
-                            await addMembersKeys(item, chatRefGroup, value.key).then(() => {
-                              console.log(`user ${item.user} added`)
-                            }).catch((err) => {
-                              console.log(err)
-                            })
+                            await addMembersKeys(item, chatRefGroup, participantsRef).then(() => {
+                            console.log(`user ${item.user} added`)
+                          }).catch((err) => {
+                            console.log(err)
                           })
-                          // try {
-                          //   for(let i = 0; i < 3; i++) {
-                          //     await addMembersKeys(groupUsersKeys, chatRef, value.key);
-                          //   }
-                            
-                          // } catch (e) {
-                          //   console.log(
-                          //     e,
-                          //     " groupUsersKeys is empty or undefined."
-                          //   );
-                          // }
+                          })
                           update(codesRef, {
                             [uid]: value.key,
                           }).then((result) => {
@@ -619,10 +614,8 @@ function CreateForm({
                       }).catch((err) => {
                         console.log(err);
                       })
-                        })
                     })
-                    
-                      
+                  }) 
                 } else if (selectedEmoji.trim().length == 0) {
                   setError("Please choose an emoji for group pfp");
                 } else {

@@ -27,6 +27,7 @@ export async function decryptAesKey(encryptedAesKeyBase64, rsaUserPrivateKey) {
 }
 
 export async function encryptMessage(textToEncrypt, aesKey) {
+  console.log(textToEncrypt, aesKey)
   const aesKeyBuffer = forge.util.createBuffer(forge.util.decode64(aesKey))
   const textBuffer = forge.util.createBuffer(textToEncrypt, 'utf8');
   const cipher = forge.cipher.createCipher('AES-ECB', aesKeyBuffer);

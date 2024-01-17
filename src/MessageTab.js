@@ -51,6 +51,7 @@ export default function MessageTab() {
   }
 
   const aesKey = getChatAESKey()
+  console.log(chatKeyAndId)
  
   async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";

@@ -53,21 +53,6 @@ export default function SideBar() {
   } = useContext(MessageContext);
   const [user, setUser] = useState(null);
   const auth = getAuth();
-  useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
-    const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16))
-    //console.log(aesChatKey)
-
-  //   encryptAesKey(aesChatKey, localStorage.getItem("userPrivateKey"))
-  //   .then((key) => {
-  //     console.log(key)
-  //   }).catch((error) => {
-  //     console.log(error)
-  //   })
-  }, []);
-
   let auxArray = []
 
   function SidebarIcon({ icon, text, type }) {
@@ -246,6 +231,7 @@ function CreateForm({
   const [userPublicKey, setUserPublicKey] = useState("")
   const [otherUserPublicKey, setOtherUserPublicKey] = useState("")
   const [groupUsersKeys, setGroupUsersKeys] = useState("")
+  const [groupsParticipants, setGroupsParticipants] = useState("")
   const navigate = useNavigate();
 
   function generateUID() {
@@ -485,7 +471,7 @@ function CreateForm({
                 async function encryptGroup() {
                   const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16));
                   const updatedGroupUsersKeys = [];  // Array para armazenar os objetos para cada usuário
-                
+                  const groupsParticipants = []
                   for (const member of membersUsernames.split(" ")) {
                     console.log("member: ", member);
                     if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(member)) {
@@ -506,30 +492,26 @@ function CreateForm({
                 
                           const userPublicKeySnapshot = await get(userRef);
                           const encryptedKey = await encryptAesKey(aesChatKey, userPublicKeySnapshot.val());
-                
+                            
+                          //console.log(snapshot.val())
                           // Adiciona um objeto ao array para cada usuário
                           updatedGroupUsersKeys.push({
                             key: encryptedKey,
                             user: snapshot.val(),
-                          });
+                          })
+
+                          groupsParticipants.push(snapshot.val())
                         }
                       } catch (error) {
                         console.error("Erro ao obter dados do banco de dados:", error);
                       }
                     }
                   }
-                
-                  // Agora, updatedGroupUsersKeys é um array de objetos
-                  setGroupUsersKeys(updatedGroupUsersKeys);
-                
-                  // Se você precisar atualizar o estado, faça isso aqui
-                  // setGroupUsersKeys((prevGroupUsersKeys) => [
-                  //   ...prevGroupUsersKeys,
-                  //   ...updatedGroupUsersKeys,
-                  // ]);
+                  setGroupUsersKeys(updatedGroupUsersKeys)
+                  setGroupsParticipants(groupsParticipants)
                 }
-                
-                
+
+                console.log(groupsParticipants)
                 
                 ///////////////////////////////////////////////////////////
                 if (  
@@ -537,7 +519,7 @@ function CreateForm({
                   && selectedEmoji.trim().length !== 0
                 ) {
                   encryptGroup().then(() => {
-                    console.log(groupUsersKeys)
+                    //console.log(groupUsersKeys)
                     setIsLoading(true);
                     const chatRef = ref(getDatabase(), '/chats');
   
@@ -548,15 +530,15 @@ function CreateForm({
                     const codesRef = ref(getDatabase(), '/codes');
                     const metaData = ref(getDatabase(), '/chatMetaData');
                     setShowEmoji(false);
+
+                    //console.log(groupsParticipants)
                     
                     push(chatRef, {
                       author: auth.currentUser.uid,
                       chatName,
                       pfp: selectedEmoji,
                       timeCreated: Date.now(),
-                      participants: {
-                        [auth.currentUser.uid]: true,
-                      },
+                      participants: groupsParticipants,
                       sessionsKeys: groupUsersKeys
                       // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
                     }).then((value) => {

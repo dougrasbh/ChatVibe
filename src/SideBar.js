@@ -247,7 +247,7 @@ function CreateForm({
   const [isLoading, setIsLoading] = useState(false);
   const [userPublicKey, setUserPublicKey] = useState("");
   const [otherUserPublicKey, setOtherUserPublicKey] = useState("");
-  const [groupUsersKeys, setGroupUsersKeys] = useState("");
+  const [groupUsersKeys, setGroupUsersKeys] = useState([]);
   const navigate = useNavigate();
 
   function generateUID() {
@@ -262,13 +262,11 @@ function CreateForm({
   }
 
   async function addMembersKeys(groupUsersKeysList, chatDbRef, chatId) {
-    for (const groupUser of groupUsersKeysList) {
-      console.log(groupUser.user, groupUser.key); // Log individual elements to verify
-      push(`${chatDbRef}/${chatId}/sessionKeys`, {
-        [groupUser.user]: groupUser.key,
-      });
-    }
+    await update(chatDbRef, {
+      [groupUsersKeysList.user]: groupUsersKeysList.key,
+    })
   }
+  
 
   function handleClose() {
     setShowModal(false);
@@ -490,10 +488,11 @@ function CreateForm({
             disabled={isLoading}
             onClick={() => {
               if (modalType == "group") {
+                const aesChatKey = window.crypto.getRandomValues(
+                  new Uint8Array(16)
+                );
                 async function encryptGroup() {
-                  const aesChatKey = window.crypto.getRandomValues(
-                    new Uint8Array(16)
-                  );
+                  
                   const updatedGroupUsersKeys = []; // Array para armazenar os objetos para cada usuário
 
                   for (const member of membersUsernames.split(" ")) {
@@ -560,9 +559,12 @@ function CreateForm({
                       );
                       const codesRef = ref(getDatabase(), "/codes");
                       const metaData = ref(getDatabase(), "/chatMetaData");
-                      setShowEmoji(false);
+                      const authorKeyRef = ref(getDatabase(), `/users/${auth.currentUser.uid}/userPublicKey`)
+                      onValue(authorKeyRef, async(snapshot) => {
+                        //console.log(snapshot.val())
+                        setShowEmoji(false)
 
-                      push(chatRef, {
+                      await push(chatRef, {
                         author: auth.currentUser.uid,
                         chatName,
                         pfp: selectedEmoji,
@@ -570,22 +572,33 @@ function CreateForm({
                         participants: {
                           [auth.currentUser.uid]: true,
                         },
-                        groupUsersKeys,
-                        // INSERIR A CHAVE AES CRIPTOGRAFADA DO GRUPO
+                        sessionsKeys: {
+                          [auth.currentUser.uid]: await encryptAesKey(aesChatKey, snapshot.val())
+                        },
                       }).then((value) => {
                         update(userRef, {
                           [value.key]: true,
-                        }).then((result) => {
+                        }).then(async(result) => {
+                          const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`);
                           const uid = generateUID();
-                          console.log(groupUsersKeys); // Check the contents of groupUsersKeys
-                          try {
-                            addMembersKeys(groupUsersKeys, chatRef, value.key);
-                          } catch (e) {
-                            console.log(
-                              e,
-                              " groupUsersKeys is empty or undefined."
-                            );
-                          }
+                          groupUsersKeys.map(async(item) => {
+                            await addMembersKeys(item, chatRefGroup, value.key).then(() => {
+                              console.log(`user ${item.user} added`)
+                            }).catch((err) => {
+                              console.log(err)
+                            })
+                          })
+                          // try {
+                          //   for(let i = 0; i < 3; i++) {
+                          //     await addMembersKeys(groupUsersKeys, chatRef, value.key);
+                          //   }
+                            
+                          // } catch (e) {
+                          //   console.log(
+                          //     e,
+                          //     " groupUsersKeys is empty or undefined."
+                          //   );
+                          // }
                           update(codesRef, {
                             [uid]: value.key,
                           }).then((result) => {
@@ -603,11 +616,13 @@ function CreateForm({
                             });
                           });
                         });
-                      });
+                      }).catch((err) => {
+                        console.log(err);
+                      })
+                        })
                     })
-                    .catch((err) => {
-                      console.log(err);
-                    });
+                    
+                      
                 } else if (selectedEmoji.trim().length == 0) {
                   setError("Please choose an emoji for group pfp");
                 } else {

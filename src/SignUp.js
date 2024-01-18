@@ -74,6 +74,7 @@ export default function SignUp() {
       `userCodes/${user.displayName}/${userCode}`
     );
     const usersRef = ref(getDatabase(), "users");
+
     get(codesRef).then(async(snapshot) => {
       if (!snapshot.exists()) {
         update(usersRef, {

@@ -41,7 +41,6 @@ export default function MessageTab() {
   const timeoutId = useRef("")
   const replyRefs = useRef({})
 
-  // obtem a chave aes do chat
   function getChatAESKey() {
     const chatItem = chatKeyAndId.find(item => chatId === item.chatId);
     if (chatItem) {
@@ -51,13 +50,14 @@ export default function MessageTab() {
         return null;
     }
   }
+  console.log(chatKeyAndId)
   const aesKey = getChatAESKey()
-
-  // funcao para enviar mensagem
+  console.log(aesKey)
+ 
   async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";
     if (text.trim() !== "") {
-      // cria objeto da mensagem 
+      //console.log(getChatId())
       const tempObj = {
         content: await encryptMessage(text, aesKey),
         sender: getAuth().currentUser.displayName,
@@ -68,8 +68,6 @@ export default function MessageTab() {
       const chatRef = ref(getDatabase(), `/chats/${chatId}/messages`);
       const metaDataRef = ref(getDatabase(), `/chatMetaData/${chatId}`);
       const mainUnreadRef = ref(getDatabase(), `unreadData/${userState.uid}`);
-
-      // salva mensagem no banco
       push(chatRef, tempObj).then(async(value) => {
         update(metaDataRef, {
           lastMsg: await encryptMessage(text, aesKey),
@@ -181,8 +179,10 @@ export default function MessageTab() {
       const container = containerRef.current;
       container.scrollTo(0, container.scrollHeight);
     }
+    // decryptMessage(text, chatKeyAndId.chatAESKey)
+    //console.log(messages.content)
   }, [messages, replyInfo]);
-  // recebe e decifra a mensagem com a aes key do chat
+
   useEffect(() => {
     async function processMessages() {
       onAuthStateChanged(getAuth(), async() => {

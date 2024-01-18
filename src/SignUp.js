@@ -121,15 +121,16 @@ export default function SignUp() {
       </div>
       <div className="flex max-w-si h-signUpHeight md:w-10/12 w-11/12 md:min-w-signUpMin max-w-maxSignUp rounded-lg overflow-hidden m-auto shadow-lg shadow-slate-600">
         <div className="relative justify-center items-center flex-1 hidden md:flex">
-          <p className="absolute text-3xl z-50 font-bold text-yellow-400 text-center">
-            Whatsapp 2
+          <p className="absolute text-3xl z-50 font-bold text-blue-700 text-center">
+            Immerse Yourself in Interaction
           </p>
           <img src={abstractBg} className="h-full w-full" />
         </div>
         <div className=" md:w-96 w-full bg-neutral-900 px-5 py-7">
           <p className="text-white text-xl mb-1">Sign up</p>
           <p className="text-white text-xs font-light mb-3">
-            Communicate with yoour friends troghout a full end-to-end cryptography chat
+            Discover a new way to communicate - sign up for our innovative chat
+            app
           </p>
           <p className="text-white text-xs font-light text-neutral-400 mt-4">
             Your name

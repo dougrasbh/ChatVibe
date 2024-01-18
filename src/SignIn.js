@@ -95,7 +95,9 @@ export default function SignUp() {
                 .then(async (value) => {
                   const { user } = value;
                   navigate("/homescreen/none");
-                  const privateKey = localStorage.getItem("userPrivateKey");
+                  const privateKey = localStorage.getItem("userPrivateKey")
+
+               
 
                   async function getUserAesKey() {
                     try {
@@ -114,22 +116,17 @@ export default function SignUp() {
                       
                             for (const key of chatKeys) {
                               const chatAuthorRef = ref(getDatabase(), `/chats/${key}/author`);
-                      
-                              onValue(chatAuthorRef, (snapshot2) => {
-                                const authorUID = snapshot2.val();
-                      
-                                if (authorUID === null || authorUID === undefined) {
-                                  console.log("No author found");
-                                } else if (auth.currentUser.uid === authorUID) {
-                                  console.log("The current user is the chat author");
-                                  const sessionKeyRef = ref(
-                                    getDatabase(),
-                                    `/chats/${key}/sessionKeys/creatorKey`
-                                  );
-                      
-                                  onValue(sessionKeyRef, async (snapshot3) => {
+                              const typeRef = ref(
+                                getDatabase(),
+                                `/chats/${key}/type`
+                              )
+
+                              onValue(typeRef, (snapshot) => {
+                                if(snapshot.val() == null) {
+                                  const groupUserRef = ref(getDatabase(),`/chats/${key}/sessionsKeys/${auth.currentUser.uid}`)
+                                  onValue(groupUserRef, async(snapshot) => {
                                     const keyDecrypted = await decryptAesKey(
-                                      snapshot3.val(),
+                                      snapshot.val(),
                                       privateKey
                                     );
                       
@@ -138,30 +135,60 @@ export default function SignUp() {
                                       chatId: key,
                                     });
                       
-                                    console.log("foi aqui");
-                                  });
+                                    console.log("foi aqui 3");
+                                  })
                                 } else {
-                                  console.log("The current user isn't the chat author");
-                                  const sessionKeyRef = ref(
-                                    getDatabase(),
-                                    `/chats/${key}/sessionKeys/otherCreatorKey`
-                                  );
-                      
-                                  onValue(sessionKeyRef, async (snapshot3) => {
-                                    const keyDecrypted = await decryptAesKey(
-                                      snapshot3.val(),
-                                      privateKey
-                                    );
-                      
-                                    chatKeyAndIds.push({
-                                      chatAESKey: keyDecrypted,
-                                      chatId: key,
-                                    });
-                      
-                                    console.log("foi aqui 2");
+                                  onValue(chatAuthorRef, (snapshot2) => {
+                                    const authorUID = snapshot2.val();
+                          
+                                    if (authorUID === null || authorUID === undefined) {
+                                      console.log("No author found");
+                                    } else if (auth.currentUser.uid === authorUID) {
+                                      console.log("The current user is the chat author");
+                                      const sessionKeyRef = ref(
+                                        getDatabase(),
+                                        `/chats/${key}/sessionKeys/creatorKey`
+                                      );
+                          
+                                      onValue(sessionKeyRef, async (snapshot3) => {
+                                        const keyDecrypted = await decryptAesKey(
+                                          snapshot3.val(),
+                                          privateKey
+                                        );
+                          
+                                        chatKeyAndIds.push({
+                                          chatAESKey: keyDecrypted,
+                                          chatId: key,
+                                        });
+                          
+                                        console.log("foi aqui");
+                                      });
+                                    } else {
+                                      console.log("The current user isn't the chat author");
+                                      const sessionKeyRef = ref(
+                                        getDatabase(),
+                                        `/chats/${key}/sessionKeys/otherCreatorKey`
+                                      );
+                          
+                                      onValue(sessionKeyRef, async (snapshot3) => {
+                                        const keyDecrypted = await decryptAesKey(
+                                          snapshot3.val(),
+                                          privateKey
+                                        );
+                          
+                                        chatKeyAndIds.push({
+                                          chatAESKey: keyDecrypted,
+                                          chatId: key,
+                                        });
+                          
+                                        console.log("foi aqui 2");
+                                      });
+                                    }
                                   });
                                 }
-                              });
+                              })
+                      
+                              
                             }
                       
                             // Set the entire array to the state
@@ -178,7 +205,7 @@ export default function SignUp() {
                       console.log(err);
                     }
                   }
-                  getUserAesKey();
+                  getUserAesKey()
                 })
                 .catch((err) => {
                   setShowError(true);

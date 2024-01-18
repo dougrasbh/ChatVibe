@@ -261,12 +261,17 @@ function CreateForm({
     return uid.join("");
   }
 
-  async function addMembersKeys(groupUsersKeysList, chatDbRef, participantRef) {
+  async function addMembersKeys(groupUsersKeysList, chatDbRef, participantRef, chatId) {
     await update(chatDbRef, {
       [groupUsersKeysList.user]: groupUsersKeysList.key,
     }).then(async() => {
       await update(participantRef, {
         [groupUsersKeysList.user]: true
+      }).then(async() => {
+        const usersRef = ref(getDatabase(), `/users/${groupUsersKeysList.user}/chats`)
+        await update(usersRef, {
+          [chatId]: true
+        })
       })
     })
 
@@ -583,12 +588,12 @@ function CreateForm({
                       }).then((value) => {
                         update(userRef, {
                           [value.key]: true,
-                        }).then(async(result) => {
+                        }).then(async() => {
                           const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`)
                           const participantsRef = ref(getDatabase(), `/chats/${value.key}/participants`)
                           const uid = generateUID();
                           groupUsersKeys.map(async(item) => {
-                            await addMembersKeys(item, chatRefGroup, participantsRef).then(() => {
+                            await addMembersKeys(item, chatRefGroup, participantsRef, value.key).then(() => {
                             console.log(`user ${item.user} added`)
                           }).catch((err) => {
                             console.log(err)

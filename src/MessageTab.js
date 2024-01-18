@@ -44,14 +44,15 @@ export default function MessageTab() {
   function getChatAESKey() {
     const chatItem = chatKeyAndId.find(item => chatId === item.chatId);
     if (chatItem) {
+
         return chatItem.chatAESKey;
     } else {
         return null;
     }
   }
-
-  const aesKey = getChatAESKey()
   console.log(chatKeyAndId)
+  const aesKey = getChatAESKey()
+  console.log(aesKey)
  
   async function handleSubmit() {
     const msgType = Object.keys(replyInfo).length !== 0 ? "reply" : "normal";

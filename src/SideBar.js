@@ -56,17 +56,8 @@ export default function SideBar() {
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       setUser(user);
-    });
-    const aesChatKey = window.crypto.getRandomValues(new Uint8Array(16));
-    //console.log(aesChatKey)
-
-    //   encryptAesKey(aesChatKey, localStorage.getItem("userPrivateKey"))
-    //   .then((key) => {
-    //     console.log(key)
-    //   }).catch((error) => {
-    //     console.log(error)
-    //   })
-  }, []);
+    })
+  }, [])
 
   let auxArray = [];
 
@@ -523,17 +514,35 @@ function CreateForm({
                             `users/${snapshot.val()}/userPublicKey`
                           );
 
+                          const creatorUserRef = ref(
+                            getDatabase(),
+                            `users/${auth.currentUser.uid}/userPublicKey`
+                          )
+
+                          const creatorPublicKeySnapshot = await get(creatorUserRef)
+
                           const userPublicKeySnapshot = await get(userRef);
+
+                          const creatorEncryptedKey = await encryptAesKey(
+                            aesChatKey,
+                            creatorPublicKeySnapshot.val()
+                          )
                           const encryptedKey = await encryptAesKey(
                             aesChatKey,
                             userPublicKeySnapshot.val()
-                          );
+                          )
 
                           // Adiciona um objeto ao array para cada usuário
+                          
+                          updatedGroupUsersKeys.push({
+                            key: creatorEncryptedKey,
+                            user: auth.currentUser.uid
+                          })
+                            
                           updatedGroupUsersKeys.push({
                             key: encryptedKey,
                             user: snapshot.val(),
-                          });
+                          })
                         }
                       } catch (error) {
                         console.error(
@@ -583,7 +592,7 @@ function CreateForm({
                           [auth.currentUser.uid]: true,
                         },
                         sessionsKeys: {
-                          [auth.currentUser.uid]: await encryptAesKey(aesChatKey, snapshot.val())
+                          // [auth.currentUser.uid]: await encryptAesKey(aesChatKey, snapshot.val())
                         },
                       }).then((value) => {
                         update(userRef, {
@@ -591,9 +600,12 @@ function CreateForm({
                         }).then(async() => {
                           const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`)
                           const participantsRef = ref(getDatabase(), `/chats/${value.key}/participants`)
-                          const uid = generateUID();
+
+                          const uid = generateUID()
+                          
                           groupUsersKeys.map(async(item) => {
-                            await addMembersKeys(item, chatRefGroup, participantsRef, value.key).then(() => {
+                            console.log(item)
+                            await addMembersKeys(item, chatRefGroup, participantsRef, value.key).then(async() => {
                             console.log(`user ${item.user} added`)
                           }).catch((err) => {
                             console.log(err)

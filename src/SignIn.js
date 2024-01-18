@@ -42,8 +42,8 @@ export default function SignUp() {
       </div>
       <div className="flex max-w-maxSignUp h-96 w-10/12 md:min-w-signUpMin rounded-lg overflow-hidden m-auto shadow-lg shadow-slate-600">
         <div className="relative justify-center items-center flex-1 hidden md:flex">
-          <p className="absolute text-3xl z-50 font-bold text-blue-700 text-center mx-5">
-            Immerse Yourself in Interaction
+          <p className="absolute text-3xl z-50 font-bold text-yellow-400 text-center mx-5">
+            Whatsapp 2
           </p>
           <img src={abstractBg} className="h-full w-full" />
         </div>

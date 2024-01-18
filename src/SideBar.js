@@ -488,16 +488,20 @@ function CreateForm({
             className="done-button "
             disabled={isLoading}
             onClick={() => {
+              // criação do chat em grupo
               if (modalType == "group") {
+
+                // gera AES key para o chat
                 const aesChatKey = window.crypto.getRandomValues(
                   new Uint8Array(16)
                 );
                 async function encryptGroup() {
+            
+                  const updatedGroupUsersKeys = []; // array para armazenar os objetos para cada usuário
                   
-                  const updatedGroupUsersKeys = []; // Array para armazenar os objetos para cada usuário
-
+                  // le os membros a serem adicionados no grupo
                   for (const member of membersUsernames.split(" ")) {
-                    console.log("member: ", member);
+                    // console.log("member: ", member); //exibe os usuários a serem adicionados no grupo
                     if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(member)) {
                       const splitName = member.split("#");
                       const codeRef = ref(
@@ -507,22 +511,21 @@ function CreateForm({
 
                       try {
                         const snapshot = await get(codeRef);
-
+                        // recupera as public keys dos usuários a serem adicionados no grupo
                         if (snapshot.exists()) {
                           const userRef = ref(
                             getDatabase(),
                             `users/${snapshot.val()}/userPublicKey`
                           );
-
                           const creatorUserRef = ref(
                             getDatabase(),
                             `users/${auth.currentUser.uid}/userPublicKey`
                           )
 
                           const creatorPublicKeySnapshot = await get(creatorUserRef)
-
                           const userPublicKeySnapshot = await get(userRef);
-
+                          
+                          //cifra a chave aes do grupo com a public key de cada membro 
                           const creatorEncryptedKey = await encryptAesKey(
                             aesChatKey,
                             creatorPublicKeySnapshot.val()
@@ -532,13 +535,12 @@ function CreateForm({
                             userPublicKeySnapshot.val()
                           )
 
-                          // Adiciona um objeto ao array para cada usuário
-                          
+                          // objeto ao array para cada usuário
+                          // {'key': *******, 'user': **********}
                           updatedGroupUsersKeys.push({
                             key: creatorEncryptedKey,
                             user: auth.currentUser.uid
                           })
-                            
                           updatedGroupUsersKeys.push({
                             key: encryptedKey,
                             user: snapshot.val(),
@@ -552,37 +554,32 @@ function CreateForm({
                       }
                     }
                   }
-
-                  // Agora, updatedGroupUsersKeys é um array de objetos
+                  // array de objetos com os membros do chat
                   setGroupUsersKeys(updatedGroupUsersKeys);
-
-                  // Se você precisar atualizar o estado, faça isso aqui
-                  // setGroupUsersKeys((prevGroupUsersKeys) => [
-                  //   ...prevGroupUsersKeys,
-                  //   ...updatedGroupUsersKeys,
-                  // ]);
                 }
-                ///////////////////////////////////////////////////////////
+                // verifica se os campos chatName e selectedEmoji estão preenchidos 
                 if (
                   chatName.trim().length !== 0 &&
                   selectedEmoji.trim().length !== 0
                 ) {
+                  // chama a função para criação do grupo
                   encryptGroup()
                     .then(() => {
                       setIsLoading(true);
-                      const chatRef = ref(getDatabase(), "/chats");
 
+                      const chatRef = ref(getDatabase(), "/chats");
                       const userRef = ref(
                         getDatabase(),
                         `/users/${auth.currentUser.uid}/chats`
                       );
+
                       const codesRef = ref(getDatabase(), "/codes");
                       const metaData = ref(getDatabase(), "/chatMetaData");
                       const authorKeyRef = ref(getDatabase(), `/users/${auth.currentUser.uid}/userPublicKey`)
-                      onValue(authorKeyRef, async(snapshot) => {
-                        //console.log(snapshot.val())
-                        setShowEmoji(false)
 
+                      onValue(authorKeyRef, async(snapshot) => {
+                        setShowEmoji(false)
+                      // salva as infomrações do grupo no banco
                       await push(chatRef, {
                         author: auth.currentUser.uid,
                         chatName,
@@ -592,19 +589,20 @@ function CreateForm({
                           [auth.currentUser.uid]: true,
                         },
                         sessionsKeys: {
-                          // [auth.currentUser.uid]: await encryptAesKey(aesChatKey, snapshot.val())
                         },
-                      }).then((value) => {
+                      })
+                      .then((value) => {
                         update(userRef, {
                           [value.key]: true,
-                        }).then(async() => {
+                        })
+                        .then(async() => {
                           const chatRefGroup = ref(getDatabase(), `/chats/${value.key}/sessionsKeys`)
                           const participantsRef = ref(getDatabase(), `/chats/${value.key}/participants`)
-
                           const uid = generateUID()
                           
+                          // salva no objeto do grupo a chave AES cifrada de cada usuário
+                          // IDdoUsuário : chaveAesCifrada
                           groupUsersKeys.map(async(item) => {
-                            console.log(item)
                             await addMembersKeys(item, chatRefGroup, participantsRef, value.key).then(async() => {
                             console.log(`user ${item.user} added`)
                           }).catch((err) => {
@@ -638,26 +636,28 @@ function CreateForm({
                 } else {
                   setError("Please enter a valid chat name");
                 }
-                //////////////////////////////////////////////////////////
+
+              //criacao do chat privado (dois usuários)
               } else if (showTick) {
                 const chatRef = ref(getDatabase(), "/chats");
-                const userRef = ref(getDatabase(), `/users/${user.uid}/chats`); // PESSOA QUE TA CRIANDO O CHAT
-                //console.log(userRef)
+                const userRef = ref(getDatabase(), `/users/${user.uid}/chats`);
+
+                // recupera a public key do usuário criador do chat
                 const userPublicKeyRef = ref(
                   getDatabase(),
                   `/users/${user.uid}/userPublicKey`
                 );
                 onValue(userPublicKeyRef, (snapshot) => {
                   setUserPublicKey(snapshot.val());
-                  //console.log(userPublicKey)
                 });
 
+                // recupera informações do outro usuário
                 if (/^[a-zA-Z0-9]+\#[0-9]{4}$/.test(username)) {
                   const splitName = username.split("#");
                   const codeRef = ref(
                     getDatabase(),
                     `userCodes/${splitName[0]}/${splitName[1]}`
-                  ); // PESSOA OBJETIVO DA CRIAÇÃO DO CHAT
+                  ); 
                   setIsLoading(true);
                   get(codeRef).then((snapshot) => {
                     if (snapshot.exists() && user) {
@@ -665,7 +665,7 @@ function CreateForm({
                         getDatabase(),
                         `users/${snapshot.val()}/name`
                       );
-                      //console.log(nameRef)
+                      
                       const codeRef = ref(
                         getDatabase(),
                         `users/${snapshot.val()}/userCode`
@@ -746,17 +746,22 @@ function CreateForm({
                                             setIsLoading(false);
                                           });
                                         });
-                                    } else {
+                                    } 
+                                    else {
+                                      // cria a AES key para chat em questão
                                       const aesChatKey =
                                         window.crypto.getRandomValues(
                                           new Uint8Array(16)
                                         );
                                       const fullUsername = `${name.val()}#${code.val()}`;
+
+                                      // funcao para criar o chat privado
                                       async function createEncryptedChat(
                                         chatRef,
                                         user,
                                         snapshot
                                       ) {
+                                        // cifra a chave aes para os usuários do chat com suas public keys
                                         try {
                                           const userCipherChatKey =
                                             await encryptAesKey(
@@ -768,8 +773,8 @@ function CreateForm({
                                               aesChatKey,
                                               otherUserPublicKey
                                             );
-                                          //console.log(userCipherChatKey)
-                                          //console.log(otherUserCipherChatKey)
+                                          
+                                          //salva as informações do chat no banco
                                           await push(chatRef, {
                                             author: user.uid,
                                             timeCreated: Date.now(),
@@ -844,6 +849,7 @@ function CreateForm({
                                           console.error(error);
                                         }
                                       }
+                                      
                                       createEncryptedChat(
                                         chatRef,
                                         user,

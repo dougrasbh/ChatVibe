@@ -96,9 +96,6 @@ export default function SignUp() {
                   const { user } = value;
                   navigate("/homescreen/none");
                   const privateKey = localStorage.getItem("userPrivateKey")
-
-               
-
                   async function getUserAesKey() {
                     try {
                       const userRef = ref(
@@ -135,7 +132,6 @@ export default function SignUp() {
                                       chatId: key,
                                     });
                       
-                                    console.log("foi aqui 3");
                                   })
                                 } else {
                                   onValue(chatAuthorRef, (snapshot2) => {
@@ -161,7 +157,7 @@ export default function SignUp() {
                                           chatId: key,
                                         });
                           
-                                        console.log("foi aqui");
+                                      
                                       });
                                     } else {
                                       console.log("The current user isn't the chat author");
@@ -180,8 +176,7 @@ export default function SignUp() {
                                           chatAESKey: keyDecrypted,
                                           chatId: key,
                                         });
-                          
-                                        console.log("foi aqui 2");
+                        
                                       });
                                     }
                                   });

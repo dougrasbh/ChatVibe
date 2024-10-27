@@ -33,6 +33,10 @@ export default function SignUp() {
       setNameError("Please enter your name");
       return false;
     }
+
+    if (username.includes(" ")){
+      return false;
+    }
     setNameError("");
     return true;
   }
@@ -193,6 +197,7 @@ export default function SignUp() {
             className="w-full h-9 text-sm mt-3 mb-2 bg-btnColor rounded-lg hover:opacity-80 transition:all duration-200"
             disabled={isSigningUp}
             onClick={() => {
+              const isUsernameValid = checkUsername();
               if (checkEmail() && checkPassword && checkUsername()) {
                 setIsSigningUp(true);
                 const auth = getAuth();
@@ -221,6 +226,10 @@ export default function SignUp() {
                     setIsSigningUp(false);
                   });
               } else {
+                if (!isUsernameValid){
+                  toast.error("Username cannot contain spaces. Please remove any spaces.");
+                  setNameError("Username cannot contain spaces.");
+                }
                 setShowError(true);
               }
             }}
